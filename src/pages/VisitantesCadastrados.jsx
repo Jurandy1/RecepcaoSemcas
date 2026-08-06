@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, RefreshCw, ContactRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { C } from '../lib/theme'
+import { maskCpfExibicao } from '../lib/br'
 import { Btn, Card, Alert, Empty, Input, FotoAmpliavel } from '../components/ui'
 import Paginacao, { usePaginacao } from '../components/Paginacao'
 
@@ -95,7 +96,7 @@ function HistoricoVisitante({ pessoa, onVoltar }) {
               {pessoa.nome}
             </h1>
             <p className="text-base mt-1" style={{ color: C.gray60 }}>
-              CPF {pessoa.cpf}
+              CPF {maskCpfExibicao(pessoa.cpf)}
               {pessoa.telefone ? ` · ${pessoa.telefone}` : ''}
             </p>
             <p className="text-sm mt-2 font-medium" style={{ color: C.blue }}>
@@ -309,7 +310,7 @@ export default function VisitantesCadastrados() {
                       {p.nome}
                     </button>
                     <div className="text-sm mt-0.5" style={{ color: C.gray60 }}>
-                      CPF {p.cpf}
+                      CPF {maskCpfExibicao(p.cpf)}
                     </div>
                     <div className="text-xs mt-1" style={{ color: C.gray20 }}>
                       {p.total} visita(s) · última: {data} às {hora} · {p.ultimoSetor}

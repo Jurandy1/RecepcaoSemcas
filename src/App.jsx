@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText, ContactRound
+  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText, ContactRound, Building2
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { supabaseConfigured } from './lib/supabase'
@@ -13,6 +13,7 @@ import Setor from './pages/Setor'
 import EnviarConvites from './pages/EnviarConvites'
 import RelatorioDia from './pages/RelatorioDia'
 import VisitantesCadastrados from './pages/VisitantesCadastrados'
+import SetoresProcurados from './pages/SetoresProcurados'
 import {
   PainelGestor,
   Usuarios,
@@ -77,6 +78,7 @@ function menusPorPapel(papel) {
     { id: 'registrar', label: 'Registrar visitante', icon: UserPlus },
     { id: 'visitantes', label: 'Servidores / Visitantes', icon: ClipboardList },
     { id: 'agendamentos', label: 'Agendamentos', icon: Calendar },
+    { id: 'setores', label: 'Setor procurado', icon: Building2 },
     { id: 'relatorio', label: 'Relatório do dia', icon: FileText },
     { id: 'usuarios', label: 'Usuários', icon: Users },
     { id: 'convites', label: 'Enviar convites', icon: Mail },
@@ -172,6 +174,7 @@ function AppInterno() {
     else if (pagina === 'visitantes') conteudo = <Recepcionista pagina="visitantes" />
     else if (pagina === 'cadastrados' && perfil.papel === 'admin') conteudo = <VisitantesCadastrados />
     else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor />
+    else if (pagina === 'setores') conteudo = <SetoresProcurados />
     else if (pagina === 'relatorio') conteudo = <RelatorioDia />
     else if (pagina === 'usuarios') conteudo = <Usuarios />
     else if (pagina === 'convites') conteudo = <EnviarConvites />

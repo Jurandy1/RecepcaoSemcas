@@ -16,6 +16,14 @@ export function maskCpf(valor) {
   return formatCpf(valor)
 }
 
+/** Exibição após cadastro: só os 3 últimos dígitos visíveis. */
+export function maskCpfExibicao(valor = '') {
+  const d = somenteDigitos(valor)
+  if (!d) return '—'
+  if (d.length < 3) return '***'
+  return `***.***.***-${d.slice(-3)}`
+}
+
 export function cpfValido(valor = '') {
   const cpf = somenteDigitos(valor)
   if (cpf.length !== 11) return false

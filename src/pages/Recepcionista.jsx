@@ -3,9 +3,10 @@ import { UserPlus, RefreshCw, Calendar, Camera, X, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C } from '../lib/theme'
-import { maskCpf, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf } from '../lib/br'
-import { Btn, Field, Input, Textarea, Card, Alert, Empty, FotoAmpliavel } from '../components/ui'
+import { maskCpf, maskCpfExibicao, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf } from '../lib/br'
+import { Btn, Field, Input, Textarea, Card, Alert, Empty, FotoAmpliavel, Select } from '../components/ui'
 import Paginacao, { usePaginacao } from '../components/Paginacao'
+import { useSetoresAtivos } from './SetoresProcurados'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -238,6 +239,7 @@ function CapturaFoto({ foto, onChange }) {
 
 export function FormRegistrar({ onRegistrado }) {
   const { perfil } = useAuth()
+  const { setores } = useSetoresAtivos()
   const [form, setForm] = useState({
     nome: '',
     cpf: '',
@@ -247,6 +249,7 @@ export function FormRegistrar({ onRegistrado }) {
   })
   const [foto, setFoto] = useState(null)
   const [servidorId, setServidorId] = useState(null)
+  const [orgao, setOrgao] = useState('')
   const [aviso, setAviso] = useState('')
   const [avisoTipo, setAvisoTipo] = useState('info')
   const [erro, setErro] = useState('')
@@ -255,9 +258,43 @@ export function FormRegistrar({ onRegistrado }) {
   const [mostrarSug, setMostrarSug] = useState(false)
   const [campoSug, setCampoSug] = useState(null)
   const debounceRef = useRef(null)
+  const servidorIdRef = useRef(null)
+  const orgaoRef = useRef('')
+
+  useEffect(() => { servidorIdRef.current = servidorId }, [servidorId])
+  useEffect(() => { orgaoRef.current = orgao }, [orgao])
 
   function setCampo(k, v) {
     setForm((f) => ({ ...f, [k]: v }))
+  }
+
+  async function carregarFotoAnterior({ cpf, nome, servidorId: sid }) {
+    let query = supabase
+      .from('visitantes')
+      .select('foto_url')
+      .not('foto_url', 'is', null)
+      .order('horario', { ascending: false })
+      .limit(1)
+
+    if (cpf && String(cpf).replace(/\D/g, '').length === 11) {
+      query = query.eq('cpf', formatCpf(cpf))
+    } else if (sid) {
+      query = query.eq('servidor_id', sid)
+    } else if (nome?.trim()) {
+      query = query.ilike('nome', nome.trim())
+    } else {
+      return
+    }
+
+    const { data } = await query.maybeSingle()
+    if (data?.foto_url) setFoto(data.foto_url)
+  }
+
+  function marcarServidor(s) {
+    setServidorId(s.id)
+    setOrgao(s.lotacao || s.setor || '')
+    setAvisoTipo('info')
+    setAviso(`Servidor municipal · Órgão: ${s.lotacao || s.setor || '—'}${s.matricula ? ` · Mat. ${s.matricula}` : ''}`)
   }
 
   function aplicarSugestao(item) {
@@ -266,15 +303,43 @@ export function FormRegistrar({ onRegistrado }) {
       nome: item.nome || f.nome,
       cpf: item.cpf ? formatCpf(item.cpf) : f.cpf,
       telefone: item.telefone ? maskTelefoneBr(item.telefone) : f.telefone,
-      setor: item.setor || f.setor,
+      // setor procurado (destino) — não sobrescrever com lotação do servidor
+      setor: item.tipo === 'servidor' ? f.setor : (item.setor || f.setor),
     }))
-    setServidorId(item.tipo === 'servidor' ? item.id : null)
+
     if (item.tipo === 'servidor') {
-      setAvisoTipo('info')
-      setAviso(`Servidor municipal · ${item.setor}`)
+      marcarServidor({
+        id: item.id,
+        lotacao: item.orgao || item.setor,
+        matricula: item.matricula,
+      })
+      carregarFotoAnterior({
+        cpf: item.cpf,
+        nome: item.nome,
+        servidorId: item.id,
+      })
     } else {
-      setAvisoTipo('info')
-      setAviso('Visitante já cadastrado anteriormente')
+      // Visitante: se já veio vinculado a servidor, mantém
+      if (item.servidor_id) {
+        marcarServidor({
+          id: item.servidor_id,
+          lotacao: item.orgao || '',
+          matricula: item.matricula,
+        })
+      } else {
+        setServidorId(null)
+        setOrgao('')
+        setAvisoTipo('info')
+        setAviso('Visitante já cadastrado anteriormente')
+      }
+      if (item.foto_url) setFoto(item.foto_url)
+      else {
+        carregarFotoAnterior({
+          cpf: item.cpf,
+          nome: item.nome,
+          servidorId: item.servidor_id,
+        })
+      }
     }
     setSugestoes([])
     setMostrarSug(false)
@@ -296,7 +361,7 @@ export function FormRegistrar({ onRegistrado }) {
         .limit(6),
       supabase
         .from('visitantes')
-        .select('id, nome, cpf, telefone, setor, horario')
+        .select('id, nome, cpf, telefone, setor, horario, foto_url, servidor_id, servidores(lotacao, matricula)')
         .ilike('nome', `%${q}%`)
         .order('horario', { ascending: false })
         .limit(20),
@@ -312,7 +377,9 @@ export function FormRegistrar({ onRegistrado }) {
         cpf: s.cpf || '',
         telefone: '',
         setor: s.lotacao,
-        rotulo: `Servidor municipal · ${s.lotacao}${s.matricula ? ` · Mat. ${s.matricula}` : ''}`,
+        orgao: s.lotacao,
+        matricula: s.matricula,
+        rotulo: `Servidor municipal · Órgão ${s.lotacao}${s.matricula ? ` · Mat. ${s.matricula}` : ''}${s.cpf ? '' : ' · sem CPF'}`,
       })
     }
 
@@ -321,6 +388,7 @@ export function FormRegistrar({ onRegistrado }) {
       const k = (v.cpf || v.nome).toLowerCase()
       if (vistos.has(k)) continue
       vistos.add(k)
+      const org = v.servidores?.lotacao || ''
       itens.push({
         key: `v-${v.id}`,
         tipo: 'visitante',
@@ -329,7 +397,13 @@ export function FormRegistrar({ onRegistrado }) {
         cpf: v.cpf || '',
         telefone: v.telefone || '',
         setor: v.setor || '',
-        rotulo: `Já cadastrado · último setor ${v.setor || '—'}`,
+        foto_url: v.foto_url || null,
+        servidor_id: v.servidor_id || null,
+        orgao: org,
+        matricula: v.servidores?.matricula,
+        rotulo: v.servidor_id
+          ? `Já cadastrado · Servidor · Órgão ${org || '—'} · último destino ${v.setor || '—'}`
+          : `Já cadastrado · último setor ${v.setor || '—'}`,
       })
       if (itens.filter((i) => i.tipo === 'visitante').length >= 6) break
     }
@@ -347,6 +421,9 @@ export function FormRegistrar({ onRegistrado }) {
       return
     }
 
+    const sidAtual = servidorIdRef.current
+    const orgaoAtual = orgaoRef.current
+
     const [{ data: serv }, { data: vis }] = await Promise.all([
       supabase
         .from('servidores')
@@ -355,13 +432,14 @@ export function FormRegistrar({ onRegistrado }) {
         .maybeSingle(),
       supabase
         .from('visitantes')
-        .select('id, nome, cpf, telefone, setor, horario')
+        .select('id, nome, cpf, telefone, setor, horario, foto_url, servidor_id, servidores(lotacao, matricula)')
         .eq('cpf', cpfFormatado)
         .order('horario', { ascending: false })
         .limit(1)
         .maybeSingle(),
     ])
 
+    // CPF já está no cadastro de servidores
     if (serv) {
       aplicarSugestao({
         key: `s-${serv.id}`,
@@ -371,8 +449,40 @@ export function FormRegistrar({ onRegistrado }) {
         cpf: serv.cpf || cpfFormatado,
         telefone: '',
         setor: serv.lotacao,
-        rotulo: `Servidor municipal · ${serv.lotacao}`,
+        orgao: serv.lotacao,
+        matricula: serv.matricula,
+        rotulo: `Servidor municipal · Órgão ${serv.lotacao}`,
       })
+      return
+    }
+
+    // Já havia selecionado um servidor (ex.: sem CPF) — NÃO desmarcar
+    if (sidAtual) {
+      setAvisoTipo('info')
+      setAviso(
+        `Servidor municipal · Órgão: ${orgaoAtual || '—'} — CPF será vinculado ao cadastro deste servidor.`
+      )
+      await carregarFotoAnterior({ cpf: cpfFormatado, servidorId: sidAtual })
+      return
+    }
+
+    // Visita anterior com vínculo a servidor
+    if (vis?.servidor_id) {
+      const org = vis.servidores?.lotacao || ''
+      setForm((f) => ({
+        ...f,
+        nome: vis.nome || f.nome,
+        cpf: formatCpf(vis.cpf || cpfFormatado),
+        telefone: vis.telefone ? maskTelefoneBr(vis.telefone) : f.telefone,
+        setor: f.setor || vis.setor || '',
+      }))
+      marcarServidor({
+        id: vis.servidor_id,
+        lotacao: org,
+        matricula: vis.servidores?.matricula,
+      })
+      if (vis.foto_url) setFoto(vis.foto_url)
+      else await carregarFotoAnterior({ cpf: cpfFormatado, servidorId: vis.servidor_id })
       return
     }
 
@@ -385,6 +495,8 @@ export function FormRegistrar({ onRegistrado }) {
         cpf: vis.cpf,
         telefone: vis.telefone || '',
         setor: vis.setor || '',
+        foto_url: vis.foto_url || null,
+        servidor_id: null,
         rotulo: `Já cadastrado · último setor ${vis.setor || '—'}`,
       })
       setAvisoTipo('warn')
@@ -393,6 +505,7 @@ export function FormRegistrar({ onRegistrado }) {
     }
 
     setServidorId(null)
+    setOrgao('')
     setSugestoes([])
     setMostrarSug(false)
     setAvisoTipo('warn')
@@ -402,7 +515,9 @@ export function FormRegistrar({ onRegistrado }) {
   function onNomeChange(e) {
     const nome = e.target.value
     setCampo('nome', nome)
+    // Só limpa servidor se o usuário estiver digitando um nome diferente do vínculo
     setServidorId(null)
+    setOrgao('')
     setAviso('')
     setCampoSug('nome')
     clearTimeout(debounceRef.current)
@@ -414,7 +529,7 @@ export function FormRegistrar({ onRegistrado }) {
   function onCpfChange(e) {
     const cpf = maskCpf(e.target.value)
     setCampo('cpf', cpf)
-    setAviso('')
+    // Não limpa aviso/servidor até terminar a busca — evita “não é servidor” indevido
     if (String(cpf).replace(/\D/g, '').length === 11) {
       if (!cpfValido(cpf)) {
         setErro('CPF inválido.')
@@ -454,10 +569,23 @@ export function FormRegistrar({ onRegistrado }) {
           .eq('id', sid)
           .maybeSingle()
         if (srv && !srv.cpf) {
-          await supabase.from('servidores').update({
+          const { error: upErr } = await supabase.from('servidores').update({
             cpf: cpfFmt,
             atualizado_em: new Date().toISOString(),
           }).eq('id', sid)
+          if (upErr) {
+            // CPF pode já existir em outro registro
+            if (upErr.code === '23505') {
+              const { data: porCpf } = await supabase
+                .from('servidores')
+                .select('id, lotacao')
+                .eq('cpf', cpfFmt)
+                .maybeSingle()
+              if (porCpf) sid = porCpf.id
+            } else {
+              throw upErr
+            }
+          }
         }
       } else {
         const { data: porCpf } = await supabase
@@ -484,6 +612,7 @@ export function FormRegistrar({ onRegistrado }) {
       setForm({ nome: '', cpf: '', telefone: '', setor: '', observacao: '' })
       setFoto(null)
       setServidorId(null)
+      setOrgao('')
       setAviso('')
       onRegistrado?.()
     } catch (err) {
@@ -553,13 +682,28 @@ export function FormRegistrar({ onRegistrado }) {
                 </Field>
               </div>
 
+              {servidorId && (
+                <Field label="Órgão (servidor municipal)">
+                  <Input large value={orgao} readOnly style={{ backgroundColor: C.blueBg, fontWeight: 600 }} />
+                </Field>
+              )}
+
               <Field label="Setor procurado" required>
-                <Input
-                  large
-                  value={form.setor}
-                  onChange={(e) => setCampo('setor', e.target.value)}
-                  placeholder="Ex.: Gabinete, Recursos Humanos..."
-                />
+                {setores.length > 0 ? (
+                  <Select large value={form.setor} onChange={(e) => setCampo('setor', e.target.value)}>
+                    <option value="">Selecione o setor...</option>
+                    {setores.map((s) => (
+                      <option key={s.id} value={s.nome}>{s.nome}</option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input
+                    large
+                    value={form.setor}
+                    onChange={(e) => setCampo('setor', e.target.value)}
+                    placeholder="Ex.: Gabinete, Recursos Humanos..."
+                  />
+                )}
               </Field>
 
               <Field label="Observação" hint='Ex.: Liberado pela chefe de gabinete'>
@@ -594,7 +738,7 @@ export function ListaVisitantesHoje() {
     if (!busca.trim()) return lista
     const q = busca.trim().toLowerCase()
     return lista.filter((v) =>
-      `${v.nome} ${v.cpf} ${v.setor} ${v.observacao || ''}`.toLowerCase().includes(q)
+      `${v.nome} ${v.cpf} ${v.setor} ${v.observacao || ''} ${v.servidores?.lotacao || ''}`.toLowerCase().includes(q)
     )
   }, [lista, busca])
 
@@ -605,12 +749,22 @@ export function ListaVisitantesHoje() {
     const fim = `${hojeISO()}T23:59:59`
     const { data, error } = await supabase
       .from('visitantes')
-      .select('*')
+      .select('*, servidores(lotacao, matricula)')
       .gte('horario', inicio)
       .lte('horario', fim)
       .order('horario', { ascending: false })
-    if (error) setErro(error.message)
-    setLista(data || [])
+    if (error) {
+      const r2 = await supabase
+        .from('visitantes')
+        .select('*')
+        .gte('horario', inicio)
+        .lte('horario', fim)
+        .order('horario', { ascending: false })
+      if (r2.error) setErro(r2.error.message)
+      setLista(r2.data || [])
+    } else {
+      setLista(data || [])
+    }
     reset()
   }
 
@@ -677,9 +831,11 @@ export function ListaVisitantesHoje() {
                   <div className="min-w-0">
                     <div className="text-lg font-semibold" style={{ color: C.blueDark }}>{v.nome}</div>
                     <div className="text-sm" style={{ color: C.gray60 }}>
-                      {v.setor} · CPF {v.cpf}
+                      {v.setor} · CPF {maskCpfExibicao(v.cpf)}
                       {v.telefone ? ` · ${v.telefone}` : ''}
-                      {v.servidor_id ? ' · Servidor municipal' : ' · Visitante'}
+                      {v.servidor_id
+                        ? ` · Servidor municipal · Órgão ${v.servidores?.lotacao || '—'}`
+                        : ' · Visitante'}
                       {v.tipo === 'agendada' ? ' · Agendada' : ''}
                     </div>
                     {v.observacao && (

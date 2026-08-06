@@ -1,9 +1,14 @@
-import { useEffect, useState } from 'react'
-import { RefreshCw, Users, Calendar, ClipboardList } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { RefreshCw, Users, Calendar, ClipboardList, Plus, CalendarPlus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../lib/AuthContext'
 import { C, PAPEIS } from '../lib/theme'
-import { Btn, Card, Empty, Alert } from '../components/ui'
+import {
+  maskCpf, maskCpfExibicao, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf, somenteDigitos,
+} from '../lib/br'
+import { Btn, Card, Empty, Alert, Field, Input, Textarea, Select } from '../components/ui'
 import Paginacao, { usePaginacao } from '../components/Paginacao'
+import { useSetoresAtivos } from './SetoresProcurados'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -186,7 +191,7 @@ export function VisitantesGestor() {
               {itens.map((v) => (
                 <tr key={v.id} className="border-t" style={{ borderColor: C.gray3 }}>
                   <td className="px-5 py-3 font-semibold" style={{ color: C.blueDark }}>{v.nome}</td>
-                  <td className="px-3 py-3 font-mono text-xs">{v.cpf}</td>
+                  <td className="px-3 py-3 font-mono text-xs">{maskCpfExibicao(v.cpf)}</td>
                   <td className="px-3 py-3">{v.setor}</td>
                   <td className="px-3 py-3">{v.telefone || '—'}</td>
                   <td className="px-3 py-3 text-xs" style={{ color: C.gray60 }}>{v.observacao || '—'}</td>
@@ -205,31 +210,63 @@ export function VisitantesGestor() {
 }
 
 export function AgendamentosGestor() {
+  const { perfil } = useAuth()
+  const [modo, setModo] = useState('lista') // lista | novo
   const [lista, setLista] = useState([])
+  const [erro, setErro] = useState('')
+  const [msg, setMsg] = useState('')
   const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
 
   async function carregar() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('agendamentos')
       .select('*')
       .gte('data', hojeISO())
       .order('data')
       .order('hora')
+    if (error) setErro(error.message)
     setLista(data || [])
     reset()
   }
 
   useEffect(() => { carregar() }, [])
 
+  async function cancelar(id) {
+    if (!confirm('Cancelar este agendamento?')) return
+    await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', id)
+    await carregar()
+  }
+
+  if (modo === 'novo') {
+    return (
+      <FormAgendarGestor
+        perfil={perfil}
+        onVoltar={() => { setModo('lista'); carregar() }}
+        onSalvo={() => { setMsg('Agendamento registrado.'); setModo('lista'); carregar() }}
+      />
+    )
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>Agendamentos</h1>
-          <p className="text-sm mt-1" style={{ color: C.gray60 }}>A partir de hoje</p>
+          <p className="text-sm mt-1" style={{ color: C.gray60 }}>
+            A partir de hoje · registre visitas agendadas como na recepção
+          </p>
         </div>
-        <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
+        <div className="flex gap-2">
+          <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
+          <Btn icon={Plus} onClick={() => { setErro(''); setMsg(''); setModo('novo') }}>
+            Novo agendamento
+          </Btn>
+        </div>
       </div>
+
+      {erro && <Alert type="error">{erro}</Alert>}
+      {msg && <Alert type="success">{msg}</Alert>}
+
       <Card>
         {itens.length === 0 ? (
           <Empty>Nenhum agendamento.</Empty>
@@ -238,26 +275,435 @@ export function AgendamentosGestor() {
             <thead>
               <tr style={{ backgroundColor: C.gray1 }}>
                 <th className="text-left px-5 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Visitante</th>
+                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>CPF</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Data</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Hora</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Setor</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Status</th>
+                <th className="text-right px-5 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }} />
               </tr>
             </thead>
             <tbody>
               {itens.map((a) => (
                 <tr key={a.id} className="border-t" style={{ borderColor: C.gray3 }}>
                   <td className="px-5 py-3 font-semibold" style={{ color: C.blueDark }}>{a.nome_visitante}</td>
+                  <td className="px-3 py-3 font-mono text-xs">{maskCpfExibicao(a.cpf)}</td>
                   <td className="px-3 py-3">{new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                   <td className="px-3 py-3 font-mono">{String(a.hora).slice(0, 5)}</td>
                   <td className="px-3 py-3">{a.setor}</td>
                   <td className="px-3 py-3">{a.status}</td>
+                  <td className="px-5 py-3 text-right">
+                    {a.status === 'agendado' && (
+                      <Btn variant="ghost" size="sm" onClick={() => cancelar(a.id)}>Cancelar</Btn>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
         <Paginacao pagina={pagina} totalPaginas={totalPaginas} totalItens={lista.length} onChange={irPara} />
+      </Card>
+    </div>
+  )
+}
+
+function SugestoesAgenda({ itens, onPick, visible }) {
+  if (!visible || !itens.length) return null
+  return (
+    <div
+      className="absolute left-0 right-0 z-20 mt-1 border shadow-md max-h-64 overflow-y-auto"
+      style={{ borderColor: C.gray3, backgroundColor: C.card }}
+    >
+      {itens.map((item) => (
+        <button
+          key={item.key}
+          type="button"
+          className="w-full text-left px-4 py-3 border-b"
+          style={{ borderColor: C.gray3, backgroundColor: C.card }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onPick(item)}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.blueBg }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.card }}
+        >
+          <div className="font-semibold text-base" style={{ color: C.blueDark }}>{item.nome}</div>
+          <div className="text-sm" style={{ color: C.gray60 }}>{item.rotulo}</div>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function FormAgendarGestor({ perfil, onVoltar, onSalvo }) {
+  const { setores } = useSetoresAtivos()
+  const [form, setForm] = useState({
+    nome_visitante: '',
+    cpf: '',
+    telefone: '',
+    data: hojeISO(),
+    hora: '',
+    sala: '',
+    setor: '',
+    observacao: '',
+  })
+  const [aviso, setAviso] = useState('')
+  const [avisoTipo, setAvisoTipo] = useState('info')
+  const [erro, setErro] = useState('')
+  const [salvando, setSalvando] = useState(false)
+  const [sugestoes, setSugestoes] = useState([])
+  const [mostrarSug, setMostrarSug] = useState(false)
+  const debounceRef = useRef(null)
+
+  function setCampo(k, v) {
+    setForm((f) => ({ ...f, [k]: v }))
+  }
+
+  function aplicarSugestao(item) {
+    setForm((f) => ({
+      ...f,
+      nome_visitante: item.nome || f.nome_visitante,
+      cpf: item.cpf ? formatCpf(item.cpf) : f.cpf,
+      telefone: item.telefone ? maskTelefoneBr(item.telefone) : f.telefone,
+      setor: item.setor || f.setor,
+    }))
+    if (item.tipo === 'servidor') {
+      setAvisoTipo('info')
+      setAviso(`Servidor municipal · ${item.setor}`)
+    } else if (item.tipo === 'agendamento') {
+      setAvisoTipo('warn')
+      setAviso(item.rotulo)
+    } else {
+      setAvisoTipo('info')
+      setAviso('Visitante já cadastrado anteriormente — dados preenchidos.')
+    }
+    setSugestoes([])
+    setMostrarSug(false)
+  }
+
+  const buscarSugestoesNome = useCallback(async (texto) => {
+    const q = texto.trim()
+    if (q.length < 3) {
+      setSugestoes([])
+      return
+    }
+
+    const [{ data: serv }, { data: vis }, { data: ags }] = await Promise.all([
+      supabase.from('servidores').select('id, nome, lotacao, cpf, matricula').ilike('nome', `%${q}%`).eq('ativo', true).limit(6),
+      supabase.from('visitantes').select('id, nome, cpf, telefone, setor, horario').ilike('nome', `%${q}%`).order('horario', { ascending: false }).limit(20),
+      supabase.from('agendamentos').select('id, nome_visitante, cpf, telefone, setor, data, hora, status').ilike('nome_visitante', `%${q}%`).neq('status', 'cancelado').gte('data', hojeISO()).order('data').limit(10),
+    ])
+
+    const itens = []
+    for (const s of serv || []) {
+      itens.push({
+        key: `s-${s.id}`,
+        tipo: 'servidor',
+        nome: s.nome,
+        cpf: s.cpf || '',
+        telefone: '',
+        setor: s.lotacao,
+        rotulo: `Servidor municipal · ${s.lotacao}${s.matricula ? ` · Mat. ${s.matricula}` : ''}`,
+      })
+    }
+
+    const vistos = new Set()
+    for (const v of vis || []) {
+      const k = (v.cpf || v.nome).toLowerCase()
+      if (vistos.has(k)) continue
+      vistos.add(k)
+      itens.push({
+        key: `v-${v.id}`,
+        tipo: 'visitante',
+        nome: v.nome,
+        cpf: v.cpf || '',
+        telefone: v.telefone || '',
+        setor: v.setor || '',
+        rotulo: `Já cadastrado · último setor ${v.setor || '—'}`,
+      })
+      if (itens.filter((i) => i.tipo === 'visitante').length >= 5) break
+    }
+
+    for (const a of ags || []) {
+      itens.push({
+        key: `a-${a.id}`,
+        tipo: 'agendamento',
+        nome: a.nome_visitante,
+        cpf: a.cpf || '',
+        telefone: a.telefone || '',
+        setor: a.setor || '',
+        rotulo: `Já há agendamento · ${new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR')} ${String(a.hora).slice(0, 5)} · ${a.setor} (${a.status})`,
+      })
+    }
+
+    setSugestoes(itens.slice(0, 12))
+    if ((serv || []).length === 0 && q.length >= 4) {
+      setAvisoTipo('warn')
+      setAviso('Nome não encontrado na lista de servidores. Pode ser visitante externo.')
+    }
+  }, [])
+
+  const verificarDuplicata = useCallback(async (cpfFormatado, data, nome) => {
+    const queries = []
+    if (cpfFormatado && cpfValido(cpfFormatado)) {
+      queries.push(
+        supabase
+          .from('agendamentos')
+          .select('id, nome_visitante, data, hora, setor, status')
+          .eq('cpf', cpfFormatado)
+          .eq('data', data)
+          .neq('status', 'cancelado')
+          .limit(5)
+      )
+    } else if (nome?.trim()) {
+      queries.push(
+        supabase
+          .from('agendamentos')
+          .select('id, nome_visitante, data, hora, setor, status')
+          .ilike('nome_visitante', nome.trim())
+          .eq('data', data)
+          .neq('status', 'cancelado')
+          .limit(5)
+      )
+    } else {
+      return []
+    }
+    const [{ data: dups }] = await Promise.all(queries)
+    return dups || []
+  }, [])
+
+  const buscarPorCpf = useCallback(async (cpfFormatado) => {
+    if (!cpfValido(cpfFormatado)) return
+
+    const [{ data: serv }, { data: vis }, dups] = await Promise.all([
+      supabase.from('servidores').select('id, nome, lotacao, cpf, matricula').eq('cpf', cpfFormatado).maybeSingle(),
+      supabase.from('visitantes').select('id, nome, cpf, telefone, setor, horario').eq('cpf', cpfFormatado).order('horario', { ascending: false }).limit(1).maybeSingle(),
+      verificarDuplicata(cpfFormatado, form.data, ''),
+    ])
+
+    if (dups.length) {
+      const d = dups[0]
+      setAvisoTipo('warn')
+      setAviso(
+        `Atenção: já existe agendamento para este CPF em ${new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR')} às ${String(d.hora).slice(0, 5)} · setor ${d.setor}.`
+      )
+    }
+
+    if (serv) {
+      aplicarSugestao({
+        key: `s-${serv.id}`,
+        tipo: 'servidor',
+        nome: serv.nome,
+        cpf: serv.cpf || cpfFormatado,
+        telefone: '',
+        setor: serv.lotacao,
+        rotulo: `Servidor municipal · ${serv.lotacao}`,
+      })
+      if (dups.length) {
+        setAvisoTipo('warn')
+        setAviso(
+          `Servidor encontrado, mas já há agendamento neste dia para o CPF · ${new Date(dups[0].data + 'T12:00:00').toLocaleDateString('pt-BR')} ${String(dups[0].hora).slice(0, 5)}.`
+        )
+      }
+      return
+    }
+
+    if (vis) {
+      aplicarSugestao({
+        key: `v-${vis.id}`,
+        tipo: 'visitante',
+        nome: vis.nome,
+        cpf: vis.cpf,
+        telefone: vis.telefone || '',
+        setor: vis.setor || '',
+        rotulo: `Já cadastrado · último setor ${vis.setor || '—'}`,
+      })
+      setAvisoTipo('warn')
+      setAviso(
+        dups.length
+          ? `Visitante já cadastrado e já possui agendamento neste dia — evite duplicar.`
+          : 'Visitante externo já cadastrado — dados da última visita preenchidos.'
+      )
+      return
+    }
+
+    if (!dups.length) {
+      setAvisoTipo('warn')
+      setAviso('CPF não encontrado na lista de servidores. Agendamento como visitante externo.')
+    }
+  }, [form.data, verificarDuplicata])
+
+  function onNomeChange(e) {
+    const nome = e.target.value
+    setCampo('nome_visitante', nome)
+    setAviso('')
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      buscarSugestoesNome(nome).then(() => setMostrarSug(true))
+    }, 300)
+  }
+
+  function onCpfChange(e) {
+    const cpf = maskCpf(e.target.value)
+    setCampo('cpf', cpf)
+    setAviso('')
+    if (somenteDigitos(cpf).length === 11) {
+      if (!cpfValido(cpf)) {
+        setErro('CPF inválido.')
+        return
+      }
+      setErro('')
+      buscarPorCpf(cpf)
+    }
+  }
+
+  async function salvar(e) {
+    e.preventDefault()
+    setErro('')
+
+    if (!form.nome_visitante.trim() || !form.data || !form.hora || !form.setor.trim()) {
+      setErro('Preencha nome, data, hora e setor.')
+      return
+    }
+    if (form.cpf.trim() && !cpfValido(form.cpf)) {
+      setErro('CPF inválido.')
+      return
+    }
+    if (!telefoneBrValido(form.telefone)) {
+      setErro('Telefone inválido.')
+      return
+    }
+
+    const cpfFmt = form.cpf.trim() ? formatCpf(form.cpf) : null
+    const dups = await verificarDuplicata(cpfFmt, form.data, form.nome_visitante)
+    if (dups.length) {
+      const mesmoSetor = dups.find((d) => d.setor?.toLowerCase() === form.setor.trim().toLowerCase())
+      if (mesmoSetor) {
+        setErro(
+          `Agendamento duplicado: já existe para esta pessoa em ${new Date(mesmoSetor.data + 'T12:00:00').toLocaleDateString('pt-BR')} às ${String(mesmoSetor.hora).slice(0, 5)} no setor ${mesmoSetor.setor}.`
+        )
+        setAvisoTipo('warn')
+        setAviso('Não é permitido cadastrar o mesmo agendamento em duplicidade.')
+        return
+      }
+      const ok = confirm(
+        `Já existe agendamento desta pessoa neste dia (setor ${dups[0].setor}). Deseja agendar mesmo assim para outro setor?`
+      )
+      if (!ok) return
+    }
+
+    setSalvando(true)
+    try {
+      const { error } = await supabase.from('agendamentos').insert({
+        nome_visitante: form.nome_visitante.trim(),
+        cpf: cpfFmt,
+        telefone: form.telefone.trim() || null,
+        data: form.data,
+        hora: form.hora,
+        sala: form.sala.trim() || null,
+        observacao: form.observacao.trim() || null,
+        setor: form.setor.trim(),
+        criado_por: perfil?.id,
+      })
+      if (error) throw error
+      onSalvo?.()
+    } catch (err) {
+      setErro(err.message || 'Erro ao agendar.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Novo agendamento</h1>
+          <p className="text-base mt-1" style={{ color: C.gray60 }}>
+            Digite o nome ou CPF — o sistema avisa se a pessoa já existe ou se há agendamento duplicado.
+          </p>
+        </div>
+        <Btn variant="ghost" onClick={onVoltar}>Voltar</Btn>
+      </div>
+
+      {erro && <Alert type="error">{erro}</Alert>}
+      {aviso && <Alert type={avisoTipo}>{aviso}</Alert>}
+
+      <Card className="p-6 sm:p-8">
+        <form onSubmit={salvar} className="space-y-5" autoComplete="off">
+          <Field label="Nome do visitante" required>
+            <div className="relative">
+              <Input
+                large
+                value={form.nome_visitante}
+                onChange={onNomeChange}
+                onFocus={() => setMostrarSug(sugestoes.length > 0)}
+                onBlur={() => setTimeout(() => setMostrarSug(false), 150)}
+                placeholder="Digite o nome"
+                autoFocus
+              />
+              <SugestoesAgenda itens={sugestoes} visible={mostrarSug} onPick={aplicarSugestao} />
+            </div>
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <Field label="CPF" hint="000.000.000-00">
+              <Input large value={form.cpf} onChange={onCpfChange} placeholder="000.000.000-00" />
+            </Field>
+            <Field label="Telefone">
+              <Input
+                large
+                value={form.telefone}
+                onChange={(e) => setCampo('telefone', maskTelefoneBr(e.target.value))}
+                placeholder="(98) 9xxxx-xxxx"
+              />
+            </Field>
+          </div>
+
+          <Field label="Setor procurado" required>
+            {setores.length > 0 ? (
+              <Select large value={form.setor} onChange={(e) => setCampo('setor', e.target.value)}>
+                <option value="">Selecione o setor...</option>
+                {setores.map((s) => (
+                  <option key={s.id} value={s.nome}>{s.nome}</option>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                large
+                value={form.setor}
+                onChange={(e) => setCampo('setor', e.target.value)}
+                placeholder="Ex.: Gabinete (cadastre setores no menu Setor procurado)"
+              />
+            )}
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <Field label="Data" required>
+              <Input large type="date" value={form.data} onChange={(e) => setCampo('data', e.target.value)} />
+            </Field>
+            <Field label="Hora" required>
+              <Input large type="time" value={form.hora} onChange={(e) => setCampo('hora', e.target.value)} />
+            </Field>
+          </div>
+
+          <Field label="Sala">
+            <Input large value={form.sala} onChange={(e) => setCampo('sala', e.target.value)} placeholder="Ex.: 302" />
+          </Field>
+
+          <Field label="Observação">
+            <Textarea
+              large
+              rows={2}
+              value={form.observacao}
+              onChange={(e) => setCampo('observacao', e.target.value)}
+              placeholder="Opcional"
+            />
+          </Field>
+
+          <Btn type="submit" full size="xl" icon={CalendarPlus} disabled={salvando}>
+            {salvando ? 'Salvando...' : 'REGISTRAR AGENDAMENTO'}
+          </Btn>
+        </form>
       </Card>
     </div>
   )

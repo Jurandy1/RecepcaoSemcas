@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { RefreshCw, FileDown, Printer } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { C } from '../lib/theme'
+import { maskCpfExibicao } from '../lib/br'
 import { Btn, Card, Alert, Empty } from '../components/ui'
 
 function hojeISO() {
@@ -51,14 +52,15 @@ export default function RelatorioDia() {
   const agendadas = lista.filter((v) => v.tipo === 'agendada').length
 
   function baixarCsv() {
-    const header = ['Horario', 'Nome', 'CPF', 'Setor', 'Telefone', 'Tipo', 'Observacao']
+    const header = ['Horario', 'Nome', 'CPF', 'Setor', 'Orgao', 'Telefone', 'Tipo', 'Observacao']
     const lines = [header.join(';')]
     for (const v of lista) {
       lines.push([
         new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         v.nome,
-        v.cpf,
+        v.cpf ? maskCpfExibicao(v.cpf) : '',
         v.setor,
+        v.servidor_id ? (v.servidores?.lotacao || '') : '',
         v.telefone || '',
         v.tipo === 'agendada' ? 'Agendada' : 'Espontanea',
         v.observacao || '',
@@ -124,6 +126,7 @@ export default function RelatorioDia() {
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Nome</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>CPF</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Setor</th>
+                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Órgão</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Telefone</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Obs.</th>
               </tr>
@@ -135,8 +138,11 @@ export default function RelatorioDia() {
                     {new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="px-3 py-2 font-semibold" style={{ color: C.blueDark }}>{v.nome}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{v.cpf}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{maskCpfExibicao(v.cpf)}</td>
                   <td className="px-3 py-2">{v.setor}</td>
+                  <td className="px-3 py-2">
+                    {v.servidor_id ? (v.servidores?.lotacao || '—') : '—'}
+                  </td>
                   <td className="px-3 py-2">{v.telefone || '—'}</td>
                   <td className="px-3 py-2 text-xs" style={{ color: C.gray60 }}>{v.observacao || '—'}</td>
                 </tr>

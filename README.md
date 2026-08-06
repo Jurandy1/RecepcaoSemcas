@@ -8,8 +8,8 @@ Sistema de recepção e agendamento.
 
 | Papel | Acesso |
 |-------|--------|
-| **Administrador** | Painel, registrar, visitantes, visitantes cadastrados (histórico), agendamentos, relatório, usuários, convites |
-| **Coordenadora** | Painel, registrar, visitantes, agendamentos, relatório, usuários, convites |
+| **Administrador** | Painel, registrar, visitantes, visitantes cadastrados (histórico), agendamentos, setor procurado, relatório, usuários, convites |
+| **Coordenadora** | Painel, registrar, visitantes, agendamentos, setor procurado, relatório, usuários, convites |
 | **Recepcionista** | Registrar, visitantes, agenda do dia, relatório |
 | **Setor** | Agendamentos do próprio setor |
 
@@ -30,7 +30,8 @@ Execute nesta ordem no **SQL Editor**:
 1. [`supabase/schema.sql`](supabase/schema.sql) — base (perfis, visitantes, convites…)
 2. [`supabase/criar-convites.sql`](supabase/criar-convites.sql) — se a tabela convites faltar
 3. [`supabase/melhorias-recepcao.sql`](supabase/melhorias-recepcao.sql) — **servidores**, observação, índices
-4. [`supabase/fix-admin.sql`](supabase/fix-admin.sql) — se o admin não entrar
+4. [`supabase/setores-procurados.sql`](supabase/setores-procurados.sql) — cadastro de setores procurados
+5. [`supabase/fix-admin.sql`](supabase/fix-admin.sql) — se o admin não entrar
 
 ### Importar servidores (CSV)
 
