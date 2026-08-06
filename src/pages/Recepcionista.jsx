@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C } from '../lib/theme'
 import { maskCpf, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf } from '../lib/br'
-import { Btn, Field, Input, Textarea, Card, Alert, Empty } from '../components/ui'
+import { Btn, Field, Input, Textarea, Card, Alert, Empty, FotoAmpliavel } from '../components/ui'
 import Paginacao, { usePaginacao } from '../components/Paginacao'
 
 function hojeISO() {
@@ -182,7 +182,12 @@ function CapturaFoto({ foto, onChange }) {
             className="w-full h-full object-cover"
           />
         ) : foto ? (
-          <img src={foto} alt="Visitante" className="w-full h-full object-cover" />
+          <FotoAmpliavel
+            src={foto}
+            alt="Visitante"
+            className="w-full h-full absolute inset-0"
+            style={{ border: 'none' }}
+          />
         ) : (
           <>
             <Camera size={36} style={{ color: C.gray20 }} />
@@ -194,8 +199,8 @@ function CapturaFoto({ foto, onChange }) {
         {foto && !aberto && (
           <button
             type="button"
-            onClick={() => onChange(null)}
-            className="absolute top-2 right-2 p-1.5 border shadow-sm"
+            onClick={(e) => { e.stopPropagation(); onChange(null) }}
+            className="absolute top-2 right-2 p-1.5 border shadow-sm z-10"
             style={{ color: C.red, borderColor: C.gray3, backgroundColor: C.white }}
           >
             <X size={14} />
@@ -658,7 +663,12 @@ export function ListaVisitantesHoje() {
               <div key={v.id} className="px-5 py-4 border-t flex flex-col sm:flex-row sm:items-center gap-3 justify-between" style={{ borderColor: C.gray3 }}>
                 <div className="flex items-start gap-3 min-w-0">
                   {v.foto_url ? (
-                    <img src={v.foto_url} alt="" className="w-12 h-12 object-cover flex-shrink-0 border" style={{ borderColor: C.gray3 }} />
+                    <FotoAmpliavel
+                      src={v.foto_url}
+                      alt={v.nome}
+                      className="w-12 h-12"
+                      size={48}
+                    />
                   ) : (
                     <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: C.blue }}>
                       {v.nome.split(' ').map((n) => n[0]).slice(0, 2).join('')}

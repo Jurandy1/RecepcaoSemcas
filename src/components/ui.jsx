@@ -1,4 +1,6 @@
 import { C } from '../lib/theme'
+import { useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 
 export function Logo({ size = 40 }) {
   return (
@@ -117,5 +119,66 @@ export function Empty({ children }) {
     <div className="py-10 text-center text-sm font-medium" style={{ color: C.gray60 }}>
       {children}
     </div>
+  )
+}
+
+/** Miniatura clicável que abre a foto em tamanho normal. */
+export function FotoAmpliavel({ src, alt = 'Foto', className = '', style, size }) {
+  const [aberta, setAberta] = useState(false)
+
+  useEffect(() => {
+    if (!aberta) return undefined
+    function onKey(e) {
+      if (e.key === 'Escape') setAberta(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [aberta])
+
+  if (!src) return null
+
+  const boxStyle = size
+    ? { width: size, height: size, borderColor: C.gray3, ...style }
+    : { borderColor: C.gray3, width: '100%', height: '100%', ...style }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setAberta(true)}
+        className={`p-0 border overflow-hidden flex-shrink-0 cursor-zoom-in focus:outline-none focus:ring-2 ${className}`}
+        style={boxStyle}
+        title="Clique para ampliar"
+      >
+        <img src={src} alt={alt} className="w-full h-full object-cover block" />
+      </button>
+
+      {aberta && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(10, 22, 40, 0.88)' }}
+          onClick={() => setAberta(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Foto ampliada"
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 p-2 text-white"
+            onClick={() => setAberta(false)}
+            title="Fechar"
+          >
+            <X size={28} />
+          </button>
+          <img
+            src={src}
+            alt={alt}
+            className="max-w-full max-h-[90vh] object-contain shadow-lg"
+            style={{ backgroundColor: C.white }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   )
 }

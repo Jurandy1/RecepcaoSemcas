@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, RefreshCw, ContactRound } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { C } from '../lib/theme'
-import { Btn, Card, Alert, Empty, Input } from '../components/ui'
+import { Btn, Card, Alert, Empty, Input, FotoAmpliavel } from '../components/ui'
 import Paginacao, { usePaginacao } from '../components/Paginacao'
 
 function formatarDataHora(iso) {
@@ -17,11 +17,10 @@ function formatarDataHora(iso) {
 function Avatar({ pessoa, size = 48 }) {
   if (pessoa.foto_url) {
     return (
-      <img
+      <FotoAmpliavel
         src={pessoa.foto_url}
-        alt=""
-        className="object-cover flex-shrink-0 border"
-        style={{ width: size, height: size, borderColor: C.gray3 }}
+        alt={pessoa.nome || 'Foto'}
+        size={size}
       />
     )
   }
