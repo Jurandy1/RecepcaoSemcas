@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
+const ADMIN_UID = '4a511454-6452-41da-9f37-270cdc5a6f99'
+
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -17,11 +19,27 @@ export function AuthProvider({ children }) {
 
     if (error) {
       console.error('Erro ao carregar perfil:', error.message)
-      setPerfil(null)
-      return null
     }
-    setPerfil(data)
-    return data
+
+    if (data) {
+      setPerfil(data)
+      return data
+    }
+
+    // Admin geral: cria perfil automaticamente se faltar
+    if (userId === ADMIN_UID) {
+      const { data: criado, error: rpcError } = await supabase.rpc('garantir_perfil_admin')
+      if (!rpcError && criado) {
+        setPerfil(criado)
+        return criado
+      }
+      if (rpcError) {
+        console.error('garantir_perfil_admin:', rpcError.message)
+      }
+    }
+
+    setPerfil(null)
+    return null
   }
 
   useEffect(() => {
@@ -58,6 +76,7 @@ export function AuthProvider({ children }) {
       password: senha
     })
     if (error) throw error
+    setSession(data.session)
     const p = await carregarPerfil(data.user.id)
     return { user: data.user, perfil: p }
   }

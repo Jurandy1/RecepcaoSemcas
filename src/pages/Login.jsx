@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Eye, EyeOff, ChevronRight } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { C } from '../lib/theme'
-import { Logo, Btn, Field, Input, Alert, Creditos } from '../components/ui'
+import { Logo, Btn, Field, Input, Alert } from '../components/ui'
 
 export default function Login({ onIrAceitar }) {
   const { login } = useAuth()
@@ -19,102 +19,121 @@ export default function Login({ onIrAceitar }) {
     try {
       const { perfil } = await login(email, senha)
       if (!perfil) {
-        setErro('Conta sem perfil. Se você recebeu um convite, use "Aceitar convite".')
+        setErro('Login ok, mas o perfil ainda não existe no banco. Rode o SQL fix-admin.sql no Supabase.')
       }
     } catch (err) {
-      setErro(err.message === 'Invalid login credentials'
-        ? 'E-mail ou senha incorretos.'
-        : (err.message || 'Não foi possível entrar.'))
+      const m = (err.message || '').toLowerCase()
+      if (m.includes('invalid login credentials')) {
+        setErro('E-mail ou senha incorretos. No Supabase → Authentication → Users, use “Reset password” se precisar.')
+      } else if (m.includes('email not confirmed')) {
+        setErro('E-mail não confirmado. Desative “Confirm email” em Authentication → Providers → Email.')
+      } else {
+        setErro(err.message || 'Não foi possível entrar.')
+      }
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.gray1 }}>
-      <header className="bg-white border-b" style={{ borderColor: C.gray3 }}>
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
-          <Logo size={48} />
-          <div>
-            <div className="text-xs font-semibold tracking-wide uppercase" style={{ color: C.gray60 }}>
-              Secretaria Municipal da Criança e Assistência Social
+    <div
+      className="min-h-screen flex flex-col relative"
+      style={{
+        backgroundImage: 'url(/login-bg.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="absolute inset-0" style={{ backgroundColor: 'rgba(11, 58, 110, 0.72)' }} />
+
+      <div className="relative z-10 flex flex-col min-h-screen">
+        <header className="border-b" style={{ borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
+            <Logo size={48} />
+            <div>
+              <div className="text-xs font-semibold tracking-wide uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                Secretaria Municipal da Criança e Assistência Social
+              </div>
+              <div className="text-lg font-bold text-white">SEMCAS</div>
             </div>
-            <div className="text-lg font-bold" style={{ color: C.blueDark }}>SEMCAS</div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
-          <h1 className="text-2xl font-bold mb-1" style={{ color: C.blueDark }}>
-            Controle de Atendimento
-          </h1>
-          <p className="text-sm mb-6" style={{ color: C.gray60 }}>
-            Entre com seu e-mail e senha.
-          </p>
+        <main className="flex-1 flex items-center justify-center px-6 py-12">
+          <div className="w-full max-w-md">
+            <div className="mb-6 text-white">
+              <h1 className="text-2xl font-bold mb-1">Controle de Atendimento</h1>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                Entre com seu e-mail e senha.
+              </p>
+            </div>
 
-          <form onSubmit={handleSubmit} className="bg-white border p-8 space-y-5" style={{ borderColor: C.gray3 }}>
-            {erro && <Alert type="error">{erro}</Alert>}
+            <form
+              onSubmit={handleSubmit}
+              className="border p-8 space-y-5 shadow-lg"
+              style={{ borderColor: C.gray3, backgroundColor: 'rgba(255,255,255,0.97)' }}
+            >
+              {erro && <Alert type="error">{erro}</Alert>}
 
-            <Field label="E-mail" required>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu.email@exemplo.com"
-                autoComplete="username"
-                required
-                large
-              />
-            </Field>
-
-            <Field label="Senha" required>
-              <div className="relative">
+              <Field label="E-mail" required>
                 <Input
-                  type={show ? 'text' : 'password'}
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder="Digite sua senha"
-                  autoComplete="current-password"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="semcas@gmail.com"
+                  autoComplete="username"
                   required
                   large
-                  style={{ paddingRight: 48 }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShow(!show)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  style={{ color: C.gray20 }}
-                >
-                  {show ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </Field>
+              </Field>
 
-            <Btn type="submit" full size="lg" disabled={loading}>
-              {loading ? 'Entrando...' : 'Entrar'} <ChevronRight size={18} />
-            </Btn>
-          </form>
+              <Field label="Senha" required>
+                <div className="relative">
+                  <Input
+                    type={show ? 'text' : 'password'}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="Digite sua senha"
+                    autoComplete="current-password"
+                    required
+                    large
+                    style={{ paddingRight: 48 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShow(!show)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                    style={{ color: C.gray20 }}
+                  >
+                    {show ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </Field>
 
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={onIrAceitar}
-              className="text-sm font-semibold underline"
-              style={{ color: C.blue }}
-            >
-              Recebi um convite — quero me cadastrar
-            </button>
+              <Btn type="submit" full size="lg" disabled={loading}>
+                {loading ? 'Entrando...' : 'Entrar'} <ChevronRight size={18} />
+              </Btn>
+            </form>
+
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={onIrAceitar}
+                className="text-sm font-semibold underline text-white"
+              >
+                Recebi um convite — quero me cadastrar
+              </button>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      <footer className="border-t py-5 px-6" style={{ backgroundColor: C.white, borderColor: C.gray3 }}>
-        <div className="max-w-5xl mx-auto flex justify-between text-xs" style={{ color: C.gray60 }}>
-          <Creditos />
-          <span>SEMCAS · Controle de Atendimento</span>
-        </div>
-      </footer>
+        <footer className="py-5 px-6" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
+          <div className="max-w-5xl mx-auto flex justify-between text-xs text-white/85">
+            <span>Desenvolvido por <strong className="text-white">Jurandy Santana</strong></span>
+            <span>SEMCAS · Controle de Atendimento</span>
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

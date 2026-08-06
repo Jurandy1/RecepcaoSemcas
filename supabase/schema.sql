@@ -282,3 +282,42 @@ set nome = excluded.nome,
     email = excluded.email,
     papel = 'admin',
     ativo = true;
+
+-- Se o admin logar e ainda não tiver perfil, cria automaticamente
+create or replace function public.garantir_perfil_admin()
+returns public.perfis
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_perfil public.perfis%rowtype;
+  v_uid uuid := auth.uid();
+  v_email text;
+begin
+  if v_uid is null then
+    raise exception 'Não autenticado';
+  end if;
+
+  select * into v_perfil from public.perfis where id = v_uid;
+  if found then
+    return v_perfil;
+  end if;
+
+  select email into v_email from auth.users where id = v_uid;
+
+  if v_uid = '4a511454-6452-41da-9f37-270cdc5a6f99'
+     or lower(coalesce(v_email, '')) = 'semcas@gmail.com' then
+    insert into public.perfis (id, nome, email, papel, ativo)
+    values (v_uid, 'Administrador Geral', 'semcas@gmail.com', 'admin', true)
+    on conflict (id) do update
+      set papel = 'admin', email = 'semcas@gmail.com', ativo = true
+    returning * into v_perfil;
+    return v_perfil;
+  end if;
+
+  return null;
+end;
+$$;
+
+grant execute on function public.garantir_perfil_admin() to authenticated;
