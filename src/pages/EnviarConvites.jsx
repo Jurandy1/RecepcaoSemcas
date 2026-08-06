@@ -10,6 +10,19 @@ function linkConvite(token) {
   return `${base}/?convite=${encodeURIComponent(token)}`
 }
 
+function rotuloStatus(status) {
+  if (status === 'aceito') return 'Já se cadastrou'
+  if (status === 'pendente') return 'Aguardando cadastro'
+  if (status === 'cancelado') return 'Cancelado'
+  return status
+}
+
+function corStatus(status) {
+  if (status === 'aceito') return { bg: C.greenBg, fg: C.green }
+  if (status === 'pendente') return { bg: C.orangeBg, fg: C.orange }
+  return { bg: C.gray2, fg: C.gray60 }
+}
+
 export default function EnviarConvites() {
   const { perfil } = useAuth()
   const [email, setEmail] = useState('')
@@ -105,7 +118,7 @@ export default function EnviarConvites() {
       <div>
         <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>Enviar convites</h1>
         <p className="text-sm mt-1" style={{ color: C.gray60 }}>
-          Gere um link e envie para a pessoa se cadastrar no sistema.
+          Gere um link e envie para a pessoa se cadastrar. Em Convites recentes você vê se ela já concluiu o cadastro.
         </p>
       </div>
 
@@ -155,12 +168,23 @@ export default function EnviarConvites() {
         {lista.length === 0 ? (
           <Empty>Nenhum convite ainda.</Empty>
         ) : (
-          lista.map((c) => (
+          lista.map((c) => {
+            const st = corStatus(c.status)
+            return (
             <div key={c.id} className="px-5 py-3 border-t flex flex-col sm:flex-row sm:items-center gap-2 justify-between" style={{ borderColor: C.gray3 }}>
               <div className="min-w-0">
                 <div className="font-semibold text-sm" style={{ color: C.blueDark }}>{c.email}</div>
-                <div className="text-xs" style={{ color: C.gray60 }}>
-                  {PAPEIS[c.papel]} · {c.status}
+                <div className="text-xs mt-1 flex flex-wrap items-center gap-2" style={{ color: C.gray60 }}>
+                  <span>{PAPEIS[c.papel]}</span>
+                  <span
+                    className="font-semibold px-2 py-0.5 text-xs"
+                    style={{ backgroundColor: st.bg, color: st.fg }}
+                  >
+                    {rotuloStatus(c.status)}
+                  </span>
+                  {c.status === 'aceito' && c.aceito_em && (
+                    <span>· {new Date(c.aceito_em).toLocaleString('pt-BR')}</span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -179,7 +203,8 @@ export default function EnviarConvites() {
                 )}
               </div>
             </div>
-          ))
+            )
+          })
         )}
       </Card>
     </div>
