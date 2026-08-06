@@ -1,4 +1,4 @@
--- SEMCAS · Controle de Atendimento
+-- SEMCAS · Controle de Recepção
 -- Cole no SQL Editor do Supabase e execute (Run).
 -- Desenvolvido por Jurandy Santana
 --

@@ -92,7 +92,7 @@ export default function RelatorioDia() {
       {erro && <Alert type="error">{erro}</Alert>}
 
       <div className="print-only mb-4">
-        <div className="text-lg font-bold">SEMCAS · Controle de Atendimento</div>
+        <div className="text-lg font-bold">SEMCAS · Controle de Recepção</div>
         <div className="text-sm">Relatório de visitantes — {new Date().toLocaleDateString('pt-BR')}</div>
       </div>
 

@@ -15,17 +15,19 @@ function Sugestoes({ itens, onPick, visible }) {
   if (!visible || !itens.length) return null
   return (
     <div
-      className="absolute left-0 right-0 z-20 mt-1 border bg-white shadow-md max-h-64 overflow-y-auto"
-      style={{ borderColor: C.gray3 }}
+      className="absolute left-0 right-0 z-20 mt-1 border shadow-md max-h-64 overflow-y-auto"
+      style={{ borderColor: C.gray3, backgroundColor: C.card }}
     >
       {itens.map((item) => (
         <button
           key={item.key}
           type="button"
-          className="w-full text-left px-4 py-3 border-b hover:bg-blue-50"
-          style={{ borderColor: C.gray3 }}
+          className="w-full text-left px-4 py-3 border-b"
+          style={{ borderColor: C.gray3, backgroundColor: C.card }}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onPick(item)}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.blueBg }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.card }}
         >
           <div className="font-semibold text-base" style={{ color: C.blueDark }}>{item.nome}</div>
           <div className="text-sm" style={{ color: C.gray60 }}>{item.rotulo}</div>
@@ -35,45 +37,118 @@ function Sugestoes({ itens, onPick, visible }) {
   )
 }
 
+function mensagemErroCamera(err) {
+  const name = err?.name || ''
+  if (!window.isSecureContext) {
+    return 'A webcam só funciona em HTTPS ou em localhost. Abra o sistema por https:// ou http://localhost (não use IP da rede em HTTP).'
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return 'Este navegador não suporta webcam. Use Chrome, Edge ou Firefox atualizado.'
+  }
+  if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+    return 'Permissão da câmera negada. Clique no ícone de cadeado/câmera na barra de endereço e permita o acesso.'
+  }
+  if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+    return 'Nenhuma webcam encontrada. Conecte uma câmera e tente novamente.'
+  }
+  if (name === 'NotReadableError' || name === 'TrackStartError') {
+    return 'A webcam está em uso por outro aplicativo. Feche o outro programa e tente de novo.'
+  }
+  if (name === 'OverconstrainedError' || name === 'ConstraintNotSatisfiedError') {
+    return 'A webcam não aceitou as configurações pedidas. Tente novamente.'
+  }
+  if (name === 'SecurityError') {
+    return 'O navegador bloqueou a câmera por segurança. Use HTTPS ou localhost.'
+  }
+  return err?.message
+    ? `Não foi possível acessar a webcam: ${err.message}`
+    : 'Não foi possível acessar a webcam. Verifique a permissão do navegador.'
+}
+
+async function obterStreamCamera() {
+  if (!window.isSecureContext) {
+    const e = new Error('INSECURE')
+    e.name = 'SecurityError'
+    throw e
+  }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    const e = new Error('UNSUPPORTED')
+    e.name = 'NotSupportedError'
+    throw e
+  }
+
+  const tentativas = [
+    { video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+    { video: { facingMode: 'user' }, audio: false },
+    { video: true, audio: false },
+  ]
+
+  let ultimoErro
+  for (const constraints of tentativas) {
+    try {
+      return await navigator.mediaDevices.getUserMedia(constraints)
+    } catch (err) {
+      ultimoErro = err
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.name === 'SecurityError') {
+        throw err
+      }
+    }
+  }
+  throw ultimoErro
+}
+
 function CapturaFoto({ foto, onChange }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const [aberto, setAberto] = useState(false)
+  const [carregando, setCarregando] = useState(false)
   const [erroCam, setErroCam] = useState('')
+
+  useEffect(() => {
+    if (!aberto) return
+    const video = videoRef.current
+    const stream = streamRef.current
+    if (!video || !stream) return
+
+    video.srcObject = stream
+    const play = video.play()
+    if (play?.catch) play.catch(() => {})
+  }, [aberto])
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+  }, [])
 
   async function abrirCamera() {
     setErroCam('')
+    setCarregando(true)
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false,
-      })
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      const stream = await obterStreamCamera()
       streamRef.current = stream
       setAberto(true)
-      requestAnimationFrame(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          videoRef.current.play().catch(() => {})
-        }
-      })
-    } catch {
-      setErroCam('Não foi possível acessar a webcam. Verifique a permissão do navegador.')
+    } catch (err) {
+      streamRef.current = null
+      setAberto(false)
+      setErroCam(mensagemErroCamera(err))
+    } finally {
+      setCarregando(false)
     }
   }
 
   function pararCamera() {
     streamRef.current?.getTracks().forEach((t) => t.stop())
     streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
     setAberto(false)
   }
 
-  useEffect(() => () => {
-    streamRef.current?.getTracks().forEach((t) => t.stop())
-  }, [])
-
   function tirarFoto() {
     const video = videoRef.current
-    if (!video) return
+    if (!video || !video.videoWidth) {
+      setErroCam('Aguarde a imagem da câmera carregar e tente novamente.')
+      return
+    }
     const canvas = document.createElement('canvas')
     const w = video.videoWidth || 640
     const h = video.videoHeight || 480
@@ -92,31 +167,46 @@ function CapturaFoto({ foto, onChange }) {
         Foto do visitante
       </label>
       <div
-        className="aspect-square border flex flex-col items-center justify-center gap-2 relative overflow-hidden"
-        style={{ borderColor: foto ? C.green : C.gray5, backgroundColor: C.gray1 }}
+        className="aspect-square border-2 flex flex-col items-center justify-center gap-2 relative overflow-hidden"
+        style={{
+          borderColor: foto ? C.green : aberto ? C.blue : C.gray5,
+          backgroundColor: aberto ? '#0A1628' : C.gray2,
+        }}
       >
         {aberto ? (
-          <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
         ) : foto ? (
           <img src={foto} alt="Visitante" className="w-full h-full object-cover" />
         ) : (
           <>
             <Camera size={36} style={{ color: C.gray20 }} />
-            <span className="text-xs text-center px-3" style={{ color: C.gray60 }}>Nenhuma foto</span>
+            <span className="text-xs text-center px-3 font-medium" style={{ color: C.gray60 }}>
+              Nenhuma foto
+            </span>
           </>
         )}
         {foto && !aberto && (
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="absolute top-2 right-2 p-1.5 bg-white border"
-            style={{ color: C.red, borderColor: C.gray3 }}
+            className="absolute top-2 right-2 p-1.5 border shadow-sm"
+            style={{ color: C.red, borderColor: C.gray3, backgroundColor: C.white }}
           >
             <X size={14} />
           </button>
         )}
       </div>
-      {erroCam && <p className="text-xs mt-2" style={{ color: C.red }}>{erroCam}</p>}
+      {erroCam && (
+        <p className="text-xs mt-2 font-medium leading-relaxed" style={{ color: C.red }}>
+          {erroCam}
+        </p>
+      )}
       <div className="mt-3 flex flex-col gap-2">
         {aberto ? (
           <>
@@ -124,8 +214,16 @@ function CapturaFoto({ foto, onChange }) {
             <Btn type="button" full size="sm" variant="ghost" onClick={pararCamera}>Cancelar câmera</Btn>
           </>
         ) : (
-          <Btn type="button" full size="sm" variant="secondary" icon={Camera} onClick={abrirCamera}>
-            {foto ? 'Tirar outra foto' : 'Abrir webcam'}
+          <Btn
+            type="button"
+            full
+            size="sm"
+            variant="secondary"
+            icon={Camera}
+            onClick={abrirCamera}
+            disabled={carregando}
+          >
+            {carregando ? 'Abrindo câmera…' : foto ? 'Tirar outra foto' : 'Abrir webcam'}
           </Btn>
         )}
       </div>

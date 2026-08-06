@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from './supabase'
+import { supabase, supabaseConfigured } from './supabase'
 
 const ADMIN_UID = '4a511454-6452-41da-9f37-270cdc5a6f99'
 
@@ -11,6 +11,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   async function carregarPerfil(userId) {
+    if (!supabase) return null
+
     const { data, error } = await supabase
       .from('perfis')
       .select('*')
@@ -43,6 +45,11 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    if (!supabaseConfigured || !supabase) {
+      setLoading(false)
+      return undefined
+    }
+
     let mounted = true
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -71,6 +78,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function login(email, senha) {
+    if (!supabase) throw new Error('Supabase não configurado.')
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password: senha
@@ -82,7 +90,7 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    await supabase.auth.signOut()
+    if (supabase) await supabase.auth.signOut()
     setPerfil(null)
     setSession(null)
   }
@@ -104,7 +112,8 @@ export function AuthProvider({ children }) {
       logout,
       refreshPerfil,
       ehGestor,
-      isLoggedIn: !!session?.user
+      isLoggedIn: !!session?.user,
+      supabaseConfigured,
     }}>
       {children}
     </AuthContext.Provider>

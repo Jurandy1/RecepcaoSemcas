@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import {
-  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText
+  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText, ContactRound
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/AuthContext'
+import { supabaseConfigured } from './lib/supabase'
 import { C } from './lib/theme'
 import Shell from './components/Shell'
 import Login from './pages/Login'
@@ -11,11 +12,41 @@ import Recepcionista from './pages/Recepcionista'
 import Setor from './pages/Setor'
 import EnviarConvites from './pages/EnviarConvites'
 import RelatorioDia from './pages/RelatorioDia'
+import VisitantesCadastrados from './pages/VisitantesCadastrados'
 import {
   PainelGestor,
   Usuarios,
   AgendamentosGestor,
 } from './pages/Gestor'
+
+function ConfiguracaoPendente() {
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center px-6"
+      style={{ backgroundColor: C.gray1 }}
+    >
+      <div
+        className="w-full max-w-lg border p-8 space-y-4 shadow-sm"
+        style={{ backgroundColor: C.card, borderColor: C.gray3 }}
+      >
+        <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>
+          Configuração do Supabase necessária
+        </h1>
+        <p className="text-sm leading-relaxed" style={{ color: C.gray60 }}>
+          O sistema está sem a URL e a chave do banco. Por isso a tela ficava branca.
+        </p>
+        <ol className="text-sm space-y-2 list-decimal pl-5" style={{ color: C.gray80 }}>
+          <li>Abra o arquivo <strong>public/config.js</strong> (ou <strong>dist/config.js</strong> no preview).</li>
+          <li>Cole a <strong>Project URL</strong> e a <strong>anon public</strong> key do Supabase.</li>
+          <li>Salve e atualize a página (F5).</li>
+        </ol>
+        <p className="text-xs leading-relaxed" style={{ color: C.gray20 }}>
+          No painel: Supabase → Project Settings → API
+        </p>
+      </div>
+    </div>
+  )
+}
 
 function lerTokenConvite() {
   try {
@@ -40,7 +71,8 @@ function menusPorPapel(papel) {
       { id: 'novo', label: 'Novo agendamento', icon: UserPlus },
     ]
   }
-  return [
+
+  const menus = [
     { id: 'home', label: 'Painel', icon: Home },
     { id: 'registrar', label: 'Registrar visitante', icon: UserPlus },
     { id: 'visitantes', label: 'Servidores / Visitantes', icon: ClipboardList },
@@ -49,6 +81,17 @@ function menusPorPapel(papel) {
     { id: 'usuarios', label: 'Usuários', icon: Users },
     { id: 'convites', label: 'Enviar convites', icon: Mail },
   ]
+
+  // Somente administrador
+  if (papel === 'admin') {
+    menus.splice(3, 0, {
+      id: 'cadastrados',
+      label: 'Visitantes cadastrados',
+      icon: ContactRound,
+    })
+  }
+
+  return menus
 }
 
 function AppInterno() {
@@ -127,6 +170,7 @@ function AppInterno() {
   } else if (ehGestor) {
     if (pagina === 'registrar') conteudo = <Recepcionista pagina="home" onRegistrado={irParaVisitantes} />
     else if (pagina === 'visitantes') conteudo = <Recepcionista pagina="visitantes" />
+    else if (pagina === 'cadastrados' && perfil.papel === 'admin') conteudo = <VisitantesCadastrados />
     else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor />
     else if (pagina === 'relatorio') conteudo = <RelatorioDia />
     else if (pagina === 'usuarios') conteudo = <Usuarios />
@@ -142,6 +186,10 @@ function AppInterno() {
 }
 
 export default function App() {
+  if (!supabaseConfigured) {
+    return <ConfiguracaoPendente />
+  }
+
   return (
     <AuthProvider>
       <AppInterno />

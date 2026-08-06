@@ -12,6 +12,23 @@ body {
   margin: 0;
   font-family: "Source Sans 3", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  background: #F5F7FA;
-  color: #1A2332;
+  background: #E4E9F0;
+  color: #121A26;
+}
+
+input, select, textarea {
+  background-color: #F7F9FC;
+  color: #121A26;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #5C6B7E;
+  opacity: 1;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  background-color: #FFFFFF;
 }

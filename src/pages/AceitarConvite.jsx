@@ -137,7 +137,7 @@ export default function AceitarConvite({ onVoltar, tokenInicial = '' }) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.gray1 }}>
-      <header className="bg-white border-b" style={{ borderColor: C.gray3 }}>
+      <header className="border-b" style={{ borderColor: C.gray3, backgroundColor: C.header }}>
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
             <div className="text-sm font-bold" style={{ color: C.blueDark }}>Aceitar convite</div>
@@ -150,7 +150,7 @@ export default function AceitarConvite({ onVoltar, tokenInicial = '' }) {
       </header>
 
       <main className="flex-1 flex items-start justify-center px-6 py-10">
-        <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white border p-8 space-y-5" style={{ borderColor: C.gray3 }}>
+        <form onSubmit={handleSubmit} className="w-full max-w-lg border p-8 space-y-5 shadow-sm" style={{ borderColor: C.gray3, backgroundColor: C.card }}>
           {erro && <Alert type="error">{erro}</Alert>}
           {ok && (
             <Alert type="success">

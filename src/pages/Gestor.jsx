@@ -41,7 +41,7 @@ export function PainelGestor() {
       <div>
         <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>Painel</h1>
         <p className="text-sm mt-1" style={{ color: C.gray60 }}>
-          Visão geral do Controle de Atendimento
+          Visão geral do Controle de Recepção
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

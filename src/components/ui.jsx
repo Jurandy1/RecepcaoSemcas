@@ -9,8 +9,8 @@ export function Logo({ size = 40 }) {
 export function Btn({ variant = 'primary', size = 'md', children, icon: Icon, full, ...props }) {
   const styles = {
     primary: { bg: C.blue, fg: C.white, border: C.blue },
-    secondary: { bg: C.white, fg: C.blue, border: C.blue },
-    ghost: { bg: 'transparent', fg: C.blue, border: 'transparent' },
+    secondary: { bg: C.white, fg: C.blueDark, border: C.blue },
+    ghost: { bg: 'transparent', fg: C.blueDark, border: C.gray3 },
     danger: { bg: C.red, fg: C.white, border: C.red },
     success: { bg: C.green, fg: C.white, border: C.green },
   }
@@ -25,7 +25,7 @@ export function Btn({ variant = 'primary', size = 'md', children, icon: Icon, fu
     <button
       {...props}
       className={`${sizes[size]} font-semibold inline-flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 ${full ? 'w-full' : ''}`}
-      style={{ backgroundColor: s.bg, color: s.fg, border: `1px solid ${s.border}` }}
+      style={{ backgroundColor: s.bg, color: s.fg, border: `1.5px solid ${s.border}` }}
     >
       {Icon && <Icon size={size === 'xl' || size === 'lg' ? 22 : 16} />}
       {children}
@@ -50,7 +50,7 @@ export function Input({ large, ...props }) {
     <input
       {...props}
       className={`w-full border focus:outline-none focus:ring-2 ${large ? 'px-4 py-4 text-lg' : 'px-3 py-2.5 text-sm'}`}
-      style={{ borderColor: C.gray5, ...props.style }}
+      style={{ borderColor: C.gray5, backgroundColor: C.inputBg, color: C.gray80, ...props.style }}
     />
   )
 }
@@ -59,8 +59,8 @@ export function Select({ large, children, ...props }) {
   return (
     <select
       {...props}
-      className={`w-full border bg-white focus:outline-none focus:ring-2 ${large ? 'px-4 py-4 text-lg' : 'px-3 py-2.5 text-sm'}`}
-      style={{ borderColor: C.gray5 }}
+      className={`w-full border focus:outline-none focus:ring-2 ${large ? 'px-4 py-4 text-lg' : 'px-3 py-2.5 text-sm'}`}
+      style={{ borderColor: C.gray5, backgroundColor: C.inputBg, color: C.gray80 }}
     >
       {children}
     </select>
@@ -72,14 +72,17 @@ export function Textarea({ large, ...props }) {
     <textarea
       {...props}
       className={`w-full border focus:outline-none focus:ring-2 resize-none ${large ? 'px-4 py-3 text-lg' : 'px-3 py-2.5 text-sm'}`}
-      style={{ borderColor: C.gray5 }}
+      style={{ borderColor: C.gray5, backgroundColor: C.inputBg, color: C.gray80 }}
     />
   )
 }
 
 export function Card({ children, className = '' }) {
   return (
-    <div className={`bg-white border ${className}`} style={{ borderColor: C.gray3 }}>
+    <div
+      className={`border shadow-sm ${className}`}
+      style={{ borderColor: C.gray3, backgroundColor: C.card }}
+    >
       {children}
     </div>
   )
@@ -87,14 +90,17 @@ export function Card({ children, className = '' }) {
 
 export function Alert({ type = 'info', children }) {
   const map = {
-    info: { bg: C.blueBg, fg: C.blueDark },
-    error: { bg: C.redBg, fg: C.red },
-    success: { bg: C.greenBg, fg: C.green },
-    warn: { bg: C.orangeBg, fg: C.orange },
+    info: { bg: C.blueBg, fg: C.blueDark, border: C.blue },
+    error: { bg: C.redBg, fg: C.red, border: C.red },
+    success: { bg: C.greenBg, fg: C.green, border: C.green },
+    warn: { bg: C.orangeBg, fg: C.orange, border: C.orange },
   }
   const s = map[type]
   return (
-    <div className="p-3 text-sm" style={{ backgroundColor: s.bg, color: s.fg }}>
+    <div
+      className="p-3 text-sm font-medium border-l-4"
+      style={{ backgroundColor: s.bg, color: s.fg, borderLeftColor: s.border }}
+    >
       {children}
     </div>
   )
@@ -108,7 +114,7 @@ export function Creditos() {
 
 export function Empty({ children }) {
   return (
-    <div className="py-10 text-center text-sm" style={{ color: C.gray60 }}>
+    <div className="py-10 text-center text-sm font-medium" style={{ color: C.gray60 }}>
       {children}
     </div>
   )

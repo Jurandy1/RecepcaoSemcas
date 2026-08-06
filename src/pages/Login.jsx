@@ -52,7 +52,7 @@ export default function Login({ onIrAceitar }) {
             <div className="text-xs font-semibold tracking-wide uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>
               Secretaria Municipal da Criança e Assistência Social
             </div>
-            <div className="text-lg font-bold text-white">SEMCAS · Controle de Atendimento</div>
+            <div className="text-lg font-bold text-white">SEMCAS · Controle de Recepção</div>
           </div>
         </header>
 
@@ -127,7 +127,7 @@ export default function Login({ onIrAceitar }) {
         <footer className="py-5 px-6" style={{ backgroundColor: 'rgba(0,0,0,0.25)' }}>
           <div className="max-w-5xl mx-auto flex justify-between text-xs text-white/85">
             <span>Desenvolvido por <strong className="text-white">Jurandy Santana</strong></span>
-            <span>SEMCAS · Controle de Atendimento</span>
+            <span>SEMCAS · Controle de Recepção</span>
           </div>
         </footer>
       </div>

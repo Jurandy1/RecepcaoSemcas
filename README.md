@@ -1,4 +1,4 @@
-# SEMCAS · Controle de Atendimento
+# SEMCAS · Controle de Recepção
 
 Sistema de recepção e agendamento.
 
@@ -8,7 +8,8 @@ Sistema de recepção e agendamento.
 
 | Papel | Acesso |
 |-------|--------|
-| **Administrador** / **Coordenadora** | Painel, registrar, visitantes, agendamentos, relatório, servidores, usuários, convites |
+| **Administrador** | Painel, registrar, visitantes, visitantes cadastrados (histórico), agendamentos, relatório, usuários, convites |
+| **Coordenadora** | Painel, registrar, visitantes, agendamentos, relatório, usuários, convites |
 | **Recepcionista** | Registrar, visitantes, agenda do dia, relatório |
 | **Setor** | Agendamentos do próprio setor |
 
