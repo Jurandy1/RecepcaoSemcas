@@ -8,40 +8,52 @@ Sistema de recepção e agendamento.
 
 | Papel | Acesso |
 |-------|--------|
-| **Administrador** / **Coordenadora** | Tudo: painel, visitantes, agendamentos, usuários, enviar convites |
-| **Recepcionista** | Cadastro simples de visitantes + agenda do dia |
-| **Setor** | Criar e acompanhar agendamentos do próprio setor |
+| **Administrador** / **Coordenadora** | Painel, registrar, visitantes, agendamentos, relatório, servidores, usuários, convites |
+| **Recepcionista** | Registrar, visitantes, agenda do dia, relatório |
+| **Setor** | Agendamentos do próprio setor |
 
-Admin geral configurado: `semcas@gmail.com`
+Admin geral: `semcas@gmail.com`
 
 ## Como rodar
 
 ```bash
 npm install
-cp .env.example .env   # preencha URL e chave anon
+cp .env.example .env
 npm run dev
 ```
 
-## Supabase — obrigatório
+## Supabase — SQL obrigatório
 
-1. No Supabase → **SQL Editor** → New query  
-2. Cole o arquivo [`supabase/schema.sql`](supabase/schema.sql)  
-3. Clique em **Run**
+Execute nesta ordem no **SQL Editor**:
 
-Isso cria tabelas, políticas e o perfil do admin (`semcas@gmail.com`).
+1. [`supabase/schema.sql`](supabase/schema.sql) — base (perfis, visitantes, convites…)
+2. [`supabase/criar-convites.sql`](supabase/criar-convites.sql) — se a tabela convites faltar
+3. [`supabase/melhorias-recepcao.sql`](supabase/melhorias-recepcao.sql) — **servidores**, observação, índices
+4. [`supabase/fix-admin.sql`](supabase/fix-admin.sql) — se o admin não entrar
 
-### Auth
+### Importar servidores (CSV)
 
-Em **Authentication → Providers → Email**, deixe e-mail/senha ativo.  
-Se o cadastro por convite pedir confirmação de e-mail e atrapalhar testes, desative temporariamente “Confirm email” em Auth → Settings.
+O arquivo está em `data/servidores.csv` (~21 mil registros).
 
-## Fluxo de convites
+No `.env` local (nunca no Vercel):
 
-1. Admin/Coordenadora → menu **Enviar convites**  
-2. Informa e-mail + tipo de acesso → gera um **código**  
-3. A pessoa abre o login → **Recebi um convite**  
-4. Valida o código, cria senha e (se for Setor) informa o **nome do setor**
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_secreta
+```
 
-## Logo
+```bash
+npm run import:servidores
+```
 
-Substitua `public/logo.svg` pelo logo oficial.
+## Fluxo da recepção
+
+- Formulário completo: nome (com sugestões), CPF, telefone, setor, observação
+- Sugestões vêm de **servidores** (pré-lista) e de **visitantes já cadastrados**
+- Após registrar, abre a tela **Visitantes**
+- Relatório do dia: imprimir ou baixar CSV
+
+## Auth
+
+Desative **Confirm email** em Authentication → Providers → Email para os convites funcionarem sem atrito.

@@ -3,7 +3,9 @@ import { Plus, RefreshCw, Calendar } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C } from '../lib/theme'
+import { maskCpf, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf } from '../lib/br'
 import { Btn, Field, Input, Textarea, Card, Alert, Empty } from '../components/ui'
+import Paginacao, { usePaginacao } from '../components/Paginacao'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -24,6 +26,7 @@ export default function Setor({ pagina }) {
     sala: '',
     observacao: '',
   })
+  const { pagina: pag, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
 
   async function carregar() {
     const { data, error } = await supabase
@@ -36,6 +39,7 @@ export default function Setor({ pagina }) {
 
     if (error) setErro(error.message)
     setLista(data || [])
+    reset()
   }
 
   useEffect(() => {
@@ -52,11 +56,20 @@ export default function Setor({ pagina }) {
       return
     }
 
+    if (form.cpf.trim() && !cpfValido(form.cpf)) {
+      setErro('CPF inválido.')
+      return
+    }
+    if (!telefoneBrValido(form.telefone)) {
+      setErro('Telefone inválido.')
+      return
+    }
+
     setSalvando(true)
     try {
       const { error } = await supabase.from('agendamentos').insert({
         nome_visitante: form.nome_visitante.trim(),
-        cpf: form.cpf.trim() || null,
+        cpf: form.cpf.trim() ? formatCpf(form.cpf) : null,
         telefone: form.telefone.trim() || null,
         data: form.data,
         hora: form.hora,
@@ -114,10 +127,10 @@ export default function Setor({ pagina }) {
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field label="CPF">
-                <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: e.target.value })} placeholder="Opcional" />
+                <Input value={form.cpf} onChange={(e) => setForm({ ...form, cpf: maskCpf(e.target.value) })} placeholder="000.000.000-00" />
               </Field>
               <Field label="Telefone">
-                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="Opcional" />
+                <Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: maskTelefoneBr(e.target.value) })} placeholder="(98) 9xxxx-xxxx" />
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -160,10 +173,10 @@ export default function Setor({ pagina }) {
           <Calendar size={18} style={{ color: C.blue }} />
           <h2 className="font-bold" style={{ color: C.blueDark }}>Agendamentos</h2>
         </div>
-        {lista.length === 0 ? (
+        {itens.length === 0 ? (
           <Empty>Nenhum agendamento futuro.</Empty>
         ) : (
-          lista.map((a) => (
+          itens.map((a) => (
             <div key={a.id} className="px-5 py-4 border-t flex items-center justify-between gap-4" style={{ borderColor: C.gray3 }}>
               <div>
                 <div className="font-semibold" style={{ color: C.blueDark }}>{a.nome_visitante}</div>
@@ -180,6 +193,7 @@ export default function Setor({ pagina }) {
             </div>
           ))
         )}
+        <Paginacao pagina={pag} totalPaginas={totalPaginas} totalItens={lista.length} onChange={irPara} />
       </Card>
     </div>
   )

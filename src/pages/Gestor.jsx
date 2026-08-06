@@ -3,6 +3,7 @@ import { RefreshCw, Users, Calendar, ClipboardList } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { C, PAPEIS } from '../lib/theme'
 import { Btn, Card, Empty, Alert } from '../components/ui'
+import Paginacao, { usePaginacao } from '../components/Paginacao'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -64,6 +65,7 @@ export function PainelGestor() {
 export function Usuarios() {
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
+  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
 
   async function carregar() {
     const { data, error } = await supabase
@@ -72,6 +74,7 @@ export function Usuarios() {
       .order('nome')
     if (error) setErro(error.message)
     setLista(data || [])
+    reset()
   }
 
   useEffect(() => { carregar() }, [])
@@ -94,7 +97,7 @@ export function Usuarios() {
       {erro && <Alert type="error">{erro}</Alert>}
 
       <Card>
-        {lista.length === 0 ? (
+        {itens.length === 0 ? (
           <Empty>Nenhum usuário.</Empty>
         ) : (
           <table className="w-full text-sm">
@@ -109,7 +112,7 @@ export function Usuarios() {
               </tr>
             </thead>
             <tbody>
-              {lista.map((u) => (
+              {itens.map((u) => (
                 <tr key={u.id} className="border-t" style={{ borderColor: C.gray3 }}>
                   <td className="px-5 py-3 font-semibold" style={{ color: C.blueDark }}>{u.nome}</td>
                   <td className="px-3 py-3" style={{ color: C.gray80 }}>{u.email}</td>
@@ -130,6 +133,7 @@ export function Usuarios() {
             </tbody>
           </table>
         )}
+        <Paginacao pagina={pagina} totalPaginas={totalPaginas} totalItens={lista.length} onChange={irPara} />
       </Card>
     </div>
   )
@@ -137,6 +141,7 @@ export function Usuarios() {
 
 export function VisitantesGestor() {
   const [lista, setLista] = useState([])
+  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
 
   async function carregar() {
     const inicio = `${hojeISO()}T00:00:00`
@@ -148,6 +153,7 @@ export function VisitantesGestor() {
       .lte('horario', fim)
       .order('horario', { ascending: false })
     setLista(data || [])
+    reset()
   }
 
   useEffect(() => { carregar() }, [])
@@ -162,7 +168,7 @@ export function VisitantesGestor() {
         <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
       </div>
       <Card>
-        {lista.length === 0 ? (
+        {itens.length === 0 ? (
           <Empty>Nenhum visitante hoje.</Empty>
         ) : (
           <table className="w-full text-sm">
@@ -172,16 +178,18 @@ export function VisitantesGestor() {
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>CPF</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Setor</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Telefone</th>
+                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Obs.</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Horário</th>
               </tr>
             </thead>
             <tbody>
-              {lista.map((v) => (
+              {itens.map((v) => (
                 <tr key={v.id} className="border-t" style={{ borderColor: C.gray3 }}>
                   <td className="px-5 py-3 font-semibold" style={{ color: C.blueDark }}>{v.nome}</td>
                   <td className="px-3 py-3 font-mono text-xs">{v.cpf}</td>
                   <td className="px-3 py-3">{v.setor}</td>
                   <td className="px-3 py-3">{v.telefone || '—'}</td>
+                  <td className="px-3 py-3 text-xs" style={{ color: C.gray60 }}>{v.observacao || '—'}</td>
                   <td className="px-3 py-3 font-mono text-xs">
                     {new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                   </td>
@@ -190,6 +198,7 @@ export function VisitantesGestor() {
             </tbody>
           </table>
         )}
+        <Paginacao pagina={pagina} totalPaginas={totalPaginas} totalItens={lista.length} onChange={irPara} />
       </Card>
     </div>
   )
@@ -197,6 +206,7 @@ export function VisitantesGestor() {
 
 export function AgendamentosGestor() {
   const [lista, setLista] = useState([])
+  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
 
   async function carregar() {
     const { data } = await supabase
@@ -206,6 +216,7 @@ export function AgendamentosGestor() {
       .order('data')
       .order('hora')
     setLista(data || [])
+    reset()
   }
 
   useEffect(() => { carregar() }, [])
@@ -220,7 +231,7 @@ export function AgendamentosGestor() {
         <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
       </div>
       <Card>
-        {lista.length === 0 ? (
+        {itens.length === 0 ? (
           <Empty>Nenhum agendamento.</Empty>
         ) : (
           <table className="w-full text-sm">
@@ -234,7 +245,7 @@ export function AgendamentosGestor() {
               </tr>
             </thead>
             <tbody>
-              {lista.map((a) => (
+              {itens.map((a) => (
                 <tr key={a.id} className="border-t" style={{ borderColor: C.gray3 }}>
                   <td className="px-5 py-3 font-semibold" style={{ color: C.blueDark }}>{a.nome_visitante}</td>
                   <td className="px-3 py-3">{new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
@@ -246,6 +257,7 @@ export function AgendamentosGestor() {
             </tbody>
           </table>
         )}
+        <Paginacao pagina={pagina} totalPaginas={totalPaginas} totalItens={lista.length} onChange={irPara} />
       </Card>
     </div>
   )

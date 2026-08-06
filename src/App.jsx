@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  Home, UserPlus, Calendar, Users, Mail, ClipboardList
+  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText, Building2
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { C } from './lib/theme'
@@ -10,6 +10,8 @@ import AceitarConvite from './pages/AceitarConvite'
 import Recepcionista from './pages/Recepcionista'
 import Setor from './pages/Setor'
 import EnviarConvites from './pages/EnviarConvites'
+import RelatorioDia from './pages/RelatorioDia'
+import Servidores from './pages/Servidores'
 import {
   PainelGestor,
   Usuarios,
@@ -29,7 +31,9 @@ function menusPorPapel(papel) {
   if (papel === 'recepcionista') {
     return [
       { id: 'home', label: 'Registrar', icon: UserPlus },
+      { id: 'visitantes', label: 'Visitantes', icon: ClipboardList },
       { id: 'agenda', label: 'Agenda do dia', icon: Calendar },
+      { id: 'relatorio', label: 'Relatório do dia', icon: FileText },
     ]
   }
   if (papel === 'setor') {
@@ -38,12 +42,13 @@ function menusPorPapel(papel) {
       { id: 'novo', label: 'Novo agendamento', icon: UserPlus },
     ]
   }
-  // admin e coordenadora
   return [
     { id: 'home', label: 'Painel', icon: Home },
     { id: 'registrar', label: 'Registrar visitante', icon: UserPlus },
     { id: 'visitantes', label: 'Visitantes', icon: ClipboardList },
     { id: 'agendamentos', label: 'Agendamentos', icon: Calendar },
+    { id: 'relatorio', label: 'Relatório do dia', icon: FileText },
+    { id: 'servidores', label: 'Servidores', icon: Building2 },
     { id: 'usuarios', label: 'Usuários', icon: Users },
     { id: 'convites', label: 'Enviar convites', icon: Mail },
   ]
@@ -114,16 +119,20 @@ function AppInterno() {
 
   const menus = menusPorPapel(perfil.papel)
   const ehGestor = perfil.papel === 'admin' || perfil.papel === 'coordenadora'
+  const irParaVisitantes = () => setPagina('visitantes')
 
   let conteudo = null
   if (perfil.papel === 'recepcionista') {
-    conteudo = <Recepcionista pagina={pagina} />
+    if (pagina === 'relatorio') conteudo = <RelatorioDia />
+    else conteudo = <Recepcionista pagina={pagina} onRegistrado={irParaVisitantes} />
   } else if (perfil.papel === 'setor') {
     conteudo = <Setor pagina={pagina} />
   } else if (ehGestor) {
-    if (pagina === 'registrar') conteudo = <Recepcionista pagina="home" />
-    else if (pagina === 'visitantes') conteudo = <VisitantesGestor />
+    if (pagina === 'registrar') conteudo = <Recepcionista pagina="home" onRegistrado={irParaVisitantes} />
+    else if (pagina === 'visitantes') conteudo = <Recepcionista pagina="visitantes" />
     else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor />
+    else if (pagina === 'relatorio') conteudo = <RelatorioDia />
+    else if (pagina === 'servidores') conteudo = <Servidores />
     else if (pagina === 'usuarios') conteudo = <Usuarios />
     else if (pagina === 'convites') conteudo = <EnviarConvites />
     else conteudo = <PainelGestor />
