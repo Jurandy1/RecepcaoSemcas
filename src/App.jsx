@@ -62,6 +62,7 @@ function menusPorPapel(papel) {
     return [
       { id: 'home', label: 'Registrar', icon: UserPlus },
       { id: 'visitantes', label: 'Servidores / Visitantes', icon: ClipboardList },
+      { id: 'agendamentos', label: 'Agendamentos', icon: Calendar },
       { id: 'agenda', label: 'Agenda do dia', icon: Calendar },
       { id: 'relatorio', label: 'Relatório do dia', icon: FileText },
     ]
@@ -73,10 +74,12 @@ function menusPorPapel(papel) {
     ]
   }
 
+  // Admin e coordenadora — Agendar visita só nestes papéis
   const menus = [
     { id: 'home', label: 'Painel', icon: Home },
     { id: 'registrar', label: 'Registrar visitante', icon: UserPlus },
     { id: 'visitantes', label: 'Servidores / Visitantes', icon: ClipboardList },
+    { id: 'cadastrados', label: 'Visitantes cadastrados', icon: ContactRound },
     { id: 'agendar', label: 'Agendar visita', icon: CalendarPlus },
     { id: 'agendamentos', label: 'Agendamentos', icon: Calendar },
     { id: 'setores', label: 'Setor procurado', icon: Building2 },
@@ -84,15 +87,6 @@ function menusPorPapel(papel) {
     { id: 'usuarios', label: 'Usuários', icon: Users },
     { id: 'convites', label: 'Enviar convites', icon: Mail },
   ]
-
-  // Admin e coordenadora — histórico de visitantes
-  if (papel === 'admin' || papel === 'coordenadora') {
-    menus.splice(3, 0, {
-      id: 'cadastrados',
-      label: 'Visitantes cadastrados',
-      icon: ContactRound,
-    })
-  }
 
   return menus
 }
@@ -175,6 +169,7 @@ function AppInterno() {
   let conteudo = null
   if (perfil.papel === 'recepcionista') {
     if (pagina === 'relatorio') conteudo = <RelatorioDia />
+    else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor modoInicial="lista" podeAgendar={false} />
     else conteudo = <Recepcionista pagina={pagina} />
   } else if (perfil.papel === 'setor') {
     conteudo = <Setor pagina={pagina} />
@@ -182,8 +177,8 @@ function AppInterno() {
     if (pagina === 'registrar') conteudo = <Recepcionista pagina="home" />
     else if (pagina === 'visitantes') conteudo = <Recepcionista pagina="visitantes" />
     else if (pagina === 'cadastrados') conteudo = <VisitantesCadastrados />
-    else if (pagina === 'agendar') conteudo = <AgendamentosGestor modoInicial="novo" />
-    else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor modoInicial="lista" />
+    else if (pagina === 'agendar') conteudo = <AgendamentosGestor modoInicial="novo" podeAgendar />
+    else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor modoInicial="lista" podeAgendar />
     else if (pagina === 'setores') conteudo = <SetoresProcurados />
     else if (pagina === 'relatorio') conteudo = <RelatorioDia />
     else if (pagina === 'usuarios') conteudo = <Usuarios />

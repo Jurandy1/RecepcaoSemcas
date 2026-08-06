@@ -209,17 +209,17 @@ export function VisitantesGestor() {
   )
 }
 
-export function AgendamentosGestor({ modoInicial = 'lista' }) {
+export function AgendamentosGestor({ modoInicial = 'lista', podeAgendar = true }) {
   const { perfil } = useAuth()
-  const [modo, setModo] = useState(modoInicial) // lista | novo
+  const [modo, setModo] = useState(podeAgendar ? modoInicial : 'lista') // lista | novo
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
   const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
 
   useEffect(() => {
-    setModo(modoInicial)
-  }, [modoInicial])
+    setModo(podeAgendar ? modoInicial : 'lista')
+  }, [modoInicial, podeAgendar])
 
   async function carregar() {
     const { data, error } = await supabase
@@ -236,12 +236,13 @@ export function AgendamentosGestor({ modoInicial = 'lista' }) {
   useEffect(() => { carregar() }, [])
 
   async function cancelar(id) {
+    if (!podeAgendar) return
     if (!confirm('Cancelar este agendamento?')) return
     await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', id)
     await carregar()
   }
 
-  if (modo === 'novo') {
+  if (modo === 'novo' && podeAgendar) {
     return (
       <FormAgendarGestor
         perfil={perfil}
@@ -257,14 +258,18 @@ export function AgendamentosGestor({ modoInicial = 'lista' }) {
         <div>
           <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>Agendamentos</h1>
           <p className="text-sm mt-1" style={{ color: C.gray60 }}>
-            A partir de hoje · admin e coordenadora também podem agendar visitas
+            {podeAgendar
+              ? 'A partir de hoje · só admin e coordenadora podem agendar visitas'
+              : 'A partir de hoje · consulta — agendar é só para admin e coordenadora'}
           </p>
         </div>
         <div className="flex gap-2">
           <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
-          <Btn icon={Plus} onClick={() => { setErro(''); setMsg(''); setModo('novo') }}>
-            Agendar visita
-          </Btn>
+          {podeAgendar && (
+            <Btn icon={Plus} onClick={() => { setErro(''); setMsg(''); setModo('novo') }}>
+              Agendar visita
+            </Btn>
+          )}
         </div>
       </div>
 
@@ -284,7 +289,9 @@ export function AgendamentosGestor({ modoInicial = 'lista' }) {
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Hora</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Setor</th>
                 <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Status</th>
-                <th className="text-right px-5 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }} />
+                {podeAgendar && (
+                  <th className="text-right px-5 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }} />
+                )}
               </tr>
             </thead>
             <tbody>
@@ -296,11 +303,13 @@ export function AgendamentosGestor({ modoInicial = 'lista' }) {
                   <td className="px-3 py-3 font-mono">{String(a.hora).slice(0, 5)}</td>
                   <td className="px-3 py-3">{a.setor}</td>
                   <td className="px-3 py-3">{a.status}</td>
-                  <td className="px-5 py-3 text-right">
-                    {a.status === 'agendado' && (
-                      <Btn variant="ghost" size="sm" onClick={() => cancelar(a.id)}>Cancelar</Btn>
-                    )}
-                  </td>
+                  {podeAgendar && (
+                    <td className="px-5 py-3 text-right">
+                      {a.status === 'agendado' && (
+                        <Btn variant="ghost" size="sm" onClick={() => cancelar(a.id)}>Cancelar</Btn>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
