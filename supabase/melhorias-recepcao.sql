@@ -1,5 +1,6 @@
 -- SEMCAS · Melhorias da recepção
 -- Cole no SQL Editor e execute (Run).
+-- Seguro rodar de novo (idempotente).
 -- Desenvolvido por Jurandy Santana
 
 create extension if not exists "pgcrypto";
@@ -24,14 +25,30 @@ create table if not exists public.servidores (
   atualizado_em timestamptz not null default now()
 );
 
+-- Unique em CPF (42P07 = relation already exists)
 do $$ begin
-  alter table public.servidores add constraint servidores_cpf_key unique (cpf);
-exception when duplicate_object then null;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'servidores_cpf_key'
+  ) then
+    alter table public.servidores add constraint servidores_cpf_key unique (cpf);
+  end if;
+exception
+  when duplicate_object then null;
+  when duplicate_table then null;
 end $$;
 
 do $$ begin
-  alter table public.servidores add constraint servidores_matricula_lotacao_key unique (matricula, lotacao);
-exception when duplicate_object then null;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'servidores_matricula_lotacao_key'
+  ) then
+    alter table public.servidores
+      add constraint servidores_matricula_lotacao_key unique (matricula, lotacao);
+  end if;
+exception
+  when duplicate_object then null;
+  when duplicate_table then null;
 end $$;
 
 create index if not exists idx_servidores_nome on public.servidores (nome);
@@ -48,10 +65,17 @@ alter table public.visitantes add column if not exists observacao text;
 alter table public.visitantes add column if not exists servidor_id uuid;
 
 do $$ begin
-  alter table public.visitantes
-    add constraint visitantes_servidor_id_fkey
-    foreign key (servidor_id) references public.servidores(id);
-exception when duplicate_object then null;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'visitantes_servidor_id_fkey'
+  ) then
+    alter table public.visitantes
+      add constraint visitantes_servidor_id_fkey
+      foreign key (servidor_id) references public.servidores(id);
+  end if;
+exception
+  when duplicate_object then null;
+  when duplicate_table then null;
 end $$;
 
 create index if not exists idx_visitantes_cpf on public.visitantes (cpf);
@@ -63,6 +87,7 @@ alter table public.servidores enable row level security;
 
 drop policy if exists "servidores_select" on public.servidores;
 drop policy if exists "servidores_gestor_write" on public.servidores;
+drop policy if exists "servidores_update_cpf" on public.servidores;
 
 create policy "servidores_select" on public.servidores
   for select to authenticated
@@ -74,7 +99,6 @@ create policy "servidores_gestor_write" on public.servidores
   with check (public.eh_gestor());
 
 -- Recepcionista também pode completar CPF ao registrar visita
-drop policy if exists "servidores_update_cpf" on public.servidores;
 create policy "servidores_update_cpf" on public.servidores
   for update to authenticated
   using (
