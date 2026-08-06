@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText, Building2
+  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { C } from './lib/theme'
@@ -11,11 +11,9 @@ import Recepcionista from './pages/Recepcionista'
 import Setor from './pages/Setor'
 import EnviarConvites from './pages/EnviarConvites'
 import RelatorioDia from './pages/RelatorioDia'
-import Servidores from './pages/Servidores'
 import {
   PainelGestor,
   Usuarios,
-  VisitantesGestor,
   AgendamentosGestor,
 } from './pages/Gestor'
 
@@ -31,7 +29,7 @@ function menusPorPapel(papel) {
   if (papel === 'recepcionista') {
     return [
       { id: 'home', label: 'Registrar', icon: UserPlus },
-      { id: 'visitantes', label: 'Visitantes', icon: ClipboardList },
+      { id: 'visitantes', label: 'Servidores / Visitantes', icon: ClipboardList },
       { id: 'agenda', label: 'Agenda do dia', icon: Calendar },
       { id: 'relatorio', label: 'Relatório do dia', icon: FileText },
     ]
@@ -45,10 +43,9 @@ function menusPorPapel(papel) {
   return [
     { id: 'home', label: 'Painel', icon: Home },
     { id: 'registrar', label: 'Registrar visitante', icon: UserPlus },
-    { id: 'visitantes', label: 'Visitantes', icon: ClipboardList },
+    { id: 'visitantes', label: 'Servidores / Visitantes', icon: ClipboardList },
     { id: 'agendamentos', label: 'Agendamentos', icon: Calendar },
     { id: 'relatorio', label: 'Relatório do dia', icon: FileText },
-    { id: 'servidores', label: 'Servidores', icon: Building2 },
     { id: 'usuarios', label: 'Usuários', icon: Users },
     { id: 'convites', label: 'Enviar convites', icon: Mail },
   ]
@@ -132,7 +129,6 @@ function AppInterno() {
     else if (pagina === 'visitantes') conteudo = <Recepcionista pagina="visitantes" />
     else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor />
     else if (pagina === 'relatorio') conteudo = <RelatorioDia />
-    else if (pagina === 'servidores') conteudo = <Servidores />
     else if (pagina === 'usuarios') conteudo = <Usuarios />
     else if (pagina === 'convites') conteudo = <EnviarConvites />
     else conteudo = <PainelGestor />

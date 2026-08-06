@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { UserPlus, RefreshCw, Calendar } from 'lucide-react'
+import { UserPlus, RefreshCw, Calendar, Camera, X, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C } from '../lib/theme'
@@ -35,6 +35,104 @@ function Sugestoes({ itens, onPick, visible }) {
   )
 }
 
+function CapturaFoto({ foto, onChange }) {
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
+  const [aberto, setAberto] = useState(false)
+  const [erroCam, setErroCam] = useState('')
+
+  async function abrirCamera() {
+    setErroCam('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
+      })
+      streamRef.current = stream
+      setAberto(true)
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          videoRef.current.play().catch(() => {})
+        }
+      })
+    } catch {
+      setErroCam('Não foi possível acessar a webcam. Verifique a permissão do navegador.')
+    }
+  }
+
+  function pararCamera() {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    setAberto(false)
+  }
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+  }, [])
+
+  function tirarFoto() {
+    const video = videoRef.current
+    if (!video) return
+    const canvas = document.createElement('canvas')
+    const w = video.videoWidth || 640
+    const h = video.videoHeight || 480
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(video, 0, 0, w, h)
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.72)
+    onChange(dataUrl)
+    pararCamera()
+  }
+
+  return (
+    <div>
+      <label className="block font-semibold mb-1.5" style={{ color: C.gray80, fontSize: 15 }}>
+        Foto do visitante
+      </label>
+      <div
+        className="aspect-square border flex flex-col items-center justify-center gap-2 relative overflow-hidden"
+        style={{ borderColor: foto ? C.green : C.gray5, backgroundColor: C.gray1 }}
+      >
+        {aberto ? (
+          <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
+        ) : foto ? (
+          <img src={foto} alt="Visitante" className="w-full h-full object-cover" />
+        ) : (
+          <>
+            <Camera size={36} style={{ color: C.gray20 }} />
+            <span className="text-xs text-center px-3" style={{ color: C.gray60 }}>Nenhuma foto</span>
+          </>
+        )}
+        {foto && !aberto && (
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="absolute top-2 right-2 p-1.5 bg-white border"
+            style={{ color: C.red, borderColor: C.gray3 }}
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+      {erroCam && <p className="text-xs mt-2" style={{ color: C.red }}>{erroCam}</p>}
+      <div className="mt-3 flex flex-col gap-2">
+        {aberto ? (
+          <>
+            <Btn type="button" full size="sm" icon={Camera} onClick={tirarFoto}>Capturar foto</Btn>
+            <Btn type="button" full size="sm" variant="ghost" onClick={pararCamera}>Cancelar câmera</Btn>
+          </>
+        ) : (
+          <Btn type="button" full size="sm" variant="secondary" icon={Camera} onClick={abrirCamera}>
+            {foto ? 'Tirar outra foto' : 'Abrir webcam'}
+          </Btn>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function FormRegistrar({ onRegistrado }) {
   const { perfil } = useAuth()
   const [form, setForm] = useState({
@@ -44,8 +142,10 @@ export function FormRegistrar({ onRegistrado }) {
     setor: '',
     observacao: '',
   })
+  const [foto, setFoto] = useState(null)
   const [servidorId, setServidorId] = useState(null)
   const [aviso, setAviso] = useState('')
+  const [avisoTipo, setAvisoTipo] = useState('info')
   const [erro, setErro] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [sugestoes, setSugestoes] = useState([])
@@ -55,6 +155,26 @@ export function FormRegistrar({ onRegistrado }) {
 
   function setCampo(k, v) {
     setForm((f) => ({ ...f, [k]: v }))
+  }
+
+  function aplicarSugestao(item) {
+    setForm((f) => ({
+      ...f,
+      nome: item.nome || f.nome,
+      cpf: item.cpf ? formatCpf(item.cpf) : f.cpf,
+      telefone: item.telefone ? maskTelefoneBr(item.telefone) : f.telefone,
+      setor: item.setor || f.setor,
+    }))
+    setServidorId(item.tipo === 'servidor' ? item.id : null)
+    if (item.tipo === 'servidor') {
+      setAvisoTipo('info')
+      setAviso(`Servidor municipal · ${item.setor}`)
+    } else {
+      setAvisoTipo('info')
+      setAviso('Visitante já cadastrado anteriormente')
+    }
+    setSugestoes([])
+    setMostrarSug(false)
   }
 
   const buscarSugestoesNome = useCallback(async (texto) => {
@@ -89,7 +209,7 @@ export function FormRegistrar({ onRegistrado }) {
         cpf: s.cpf || '',
         telefone: '',
         setor: s.lotacao,
-        rotulo: `Servidor · ${s.lotacao}${s.matricula ? ` · Mat. ${s.matricula}` : ''}`,
+        rotulo: `Servidor municipal · ${s.lotacao}${s.matricula ? ` · Mat. ${s.matricula}` : ''}`,
       })
     }
 
@@ -112,6 +232,10 @@ export function FormRegistrar({ onRegistrado }) {
     }
 
     setSugestoes(itens.slice(0, 12))
+    if ((serv || []).length === 0 && q.length >= 4) {
+      setAvisoTipo('warn')
+      setAviso('Nome não encontrado na lista de servidores do município. Pode ser visitante externo.')
+    }
   }, [])
 
   const buscarPorCpf = useCallback(async (cpfFormatado) => {
@@ -135,9 +259,8 @@ export function FormRegistrar({ onRegistrado }) {
         .maybeSingle(),
     ])
 
-    const itens = []
     if (serv) {
-      itens.push({
+      aplicarSugestao({
         key: `s-${serv.id}`,
         tipo: 'servidor',
         id: serv.id,
@@ -145,11 +268,13 @@ export function FormRegistrar({ onRegistrado }) {
         cpf: serv.cpf || cpfFormatado,
         telefone: '',
         setor: serv.lotacao,
-        rotulo: `Servidor · ${serv.lotacao}`,
+        rotulo: `Servidor municipal · ${serv.lotacao}`,
       })
+      return
     }
+
     if (vis) {
-      itens.push({
+      aplicarSugestao({
         key: `v-${vis.id}`,
         tipo: 'visitante',
         id: null,
@@ -159,45 +284,17 @@ export function FormRegistrar({ onRegistrado }) {
         setor: vis.setor || '',
         rotulo: `Já cadastrado · último setor ${vis.setor || '—'}`,
       })
+      setAvisoTipo('warn')
+      setAviso('Visitante externo (não é servidor do município) — dados da última visita preenchidos.')
+      return
     }
 
-    if (itens.length === 1) {
-      const item = itens[0]
-      setForm((f) => ({
-        ...f,
-        nome: item.nome || f.nome,
-        cpf: item.cpf ? formatCpf(item.cpf) : f.cpf,
-        telefone: item.telefone ? maskTelefoneBr(item.telefone) : f.telefone,
-        setor: item.setor || f.setor,
-      }))
-      setServidorId(item.tipo === 'servidor' ? item.id : null)
-      setAviso(item.tipo === 'servidor'
-        ? `Servidor identificado · ${item.setor}`
-        : 'Visitante já cadastrado anteriormente')
-      setSugestoes([])
-      setMostrarSug(false)
-    } else {
-      setSugestoes(itens)
-      setMostrarSug(itens.length > 0)
-      setCampoSug('cpf')
-    }
-  }, [])
-
-  function aplicarSugestao(item) {
-    setForm((f) => ({
-      ...f,
-      nome: item.nome || f.nome,
-      cpf: item.cpf ? formatCpf(item.cpf) : f.cpf,
-      telefone: item.telefone ? maskTelefoneBr(item.telefone) : f.telefone,
-      setor: item.setor || f.setor,
-    }))
-    setServidorId(item.tipo === 'servidor' ? item.id : null)
-    setAviso(item.tipo === 'servidor'
-      ? `Servidor identificado · ${item.setor}`
-      : `Visitante já cadastrado anteriormente`)
+    setServidorId(null)
     setSugestoes([])
     setMostrarSug(false)
-  }
+    setAvisoTipo('warn')
+    setAviso('CPF não encontrado na lista de servidores do município. Cadastro como visitante externo.')
+  }, [])
 
   function onNomeChange(e) {
     const nome = e.target.value
@@ -215,7 +312,7 @@ export function FormRegistrar({ onRegistrado }) {
     const cpf = maskCpf(e.target.value)
     setCampo('cpf', cpf)
     setAviso('')
-    if (somenteDigitosLen(cpf) === 11) {
+    if (String(cpf).replace(/\D/g, '').length === 11) {
       if (!cpfValido(cpf)) {
         setErro('CPF inválido.')
         return
@@ -223,10 +320,6 @@ export function FormRegistrar({ onRegistrado }) {
       setErro('')
       buscarPorCpf(cpf)
     }
-  }
-
-  function somenteDigitosLen(v) {
-    return String(v).replace(/\D/g, '').length
   }
 
   async function registrar(e) {
@@ -278,6 +371,7 @@ export function FormRegistrar({ onRegistrado }) {
         telefone: form.telefone.trim() || null,
         setor: form.setor.trim(),
         observacao: form.observacao.trim() || null,
+        foto_url: foto || null,
         tipo: 'espontanea',
         registrado_por: perfil?.id,
         servidor_id: sid || null,
@@ -285,6 +379,7 @@ export function FormRegistrar({ onRegistrado }) {
       if (error) throw error
 
       setForm({ nome: '', cpf: '', telefone: '', setor: '', observacao: '' })
+      setFoto(null)
       setServidorId(null)
       setAviso('')
       onRegistrado?.()
@@ -296,79 +391,85 @@ export function FormRegistrar({ onRegistrado }) {
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-5">
+    <div className="p-6 max-w-4xl mx-auto space-y-5">
       <div>
         <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Registrar visitante</h1>
         <p className="text-base mt-1" style={{ color: C.gray60 }}>
-          Preencha os campos. Ao digitar nome ou CPF, o sistema sugere cadastros existentes.
+          Digite o nome ou CPF — o sistema identifica se é servidor municipal ou visitante externo.
         </p>
       </div>
 
       {erro && <Alert type="error">{erro}</Alert>}
-      {aviso && <Alert type="info">{aviso}</Alert>}
+      {aviso && <Alert type={avisoTipo}>{aviso}</Alert>}
 
       <Card className="p-6 sm:p-8">
         <form onSubmit={registrar} className="space-y-5" autoComplete="off">
-          <Field label="Nome completo" required>
-            <div className="relative">
-              <Input
-                large
-                value={form.nome}
-                onChange={onNomeChange}
-                onFocus={() => { setCampoSug('nome'); setMostrarSug(sugestoes.length > 0) }}
-                onBlur={() => setTimeout(() => setMostrarSug(false), 150)}
-                placeholder="Digite o nome"
-                autoFocus
-              />
-              {campoSug === 'nome' && (
-                <Sugestoes itens={sugestoes} visible={mostrarSug} onPick={aplicarSugestao} />
-              )}
-            </div>
-          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <CapturaFoto foto={foto} onChange={setFoto} />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Field label="CPF" required hint="000.000.000-00">
-              <div className="relative">
+            <div className="md:col-span-2 space-y-5">
+              <Field label="Nome completo" required>
+                <div className="relative">
+                  <Input
+                    large
+                    value={form.nome}
+                    onChange={onNomeChange}
+                    onFocus={() => { setCampoSug('nome'); setMostrarSug(sugestoes.length > 0) }}
+                    onBlur={() => setTimeout(() => setMostrarSug(false), 150)}
+                    placeholder="Digite o nome"
+                    autoFocus
+                  />
+                  {campoSug === 'nome' && (
+                    <Sugestoes itens={sugestoes} visible={mostrarSug} onPick={aplicarSugestao} />
+                  )}
+                </div>
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <Field label="CPF" required hint="000.000.000-00">
+                  <div className="relative">
+                    <Input
+                      large
+                      value={form.cpf}
+                      onChange={onCpfChange}
+                      onFocus={() => setCampoSug('cpf')}
+                      placeholder="000.000.000-00"
+                    />
+                    {campoSug === 'cpf' && (
+                      <Sugestoes itens={sugestoes} visible={mostrarSug} onPick={aplicarSugestao} />
+                    )}
+                  </div>
+                </Field>
+                <Field label="Telefone">
+                  <Input
+                    large
+                    value={form.telefone}
+                    onChange={(e) => setCampo('telefone', maskTelefoneBr(e.target.value))}
+                    placeholder="(98) 9xxxx-xxxx"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Setor procurado" required>
                 <Input
                   large
-                  value={form.cpf}
-                  onChange={onCpfChange}
-                  onFocus={() => setCampoSug('cpf')}
-                  placeholder="000.000.000-00"
+                  value={form.setor}
+                  onChange={(e) => setCampo('setor', e.target.value)}
+                  placeholder="Ex.: Gabinete, Recursos Humanos..."
                 />
-                {campoSug === 'cpf' && (
-                  <Sugestoes itens={sugestoes} visible={mostrarSug} onPick={aplicarSugestao} />
-                )}
-              </div>
-            </Field>
-            <Field label="Telefone">
-              <Input
-                large
-                value={form.telefone}
-                onChange={(e) => setCampo('telefone', maskTelefoneBr(e.target.value))}
-                placeholder="(98) 9xxxx-xxxx"
-              />
-            </Field>
+              </Field>
+
+              <Field label="Observação" hint='Ex.: Liberado pela chefe de gabinete'>
+                <Textarea
+                  large
+                  rows={2}
+                  value={form.observacao}
+                  onChange={(e) => setCampo('observacao', e.target.value)}
+                  placeholder="Opcional"
+                />
+              </Field>
+            </div>
           </div>
-
-          <Field label="Setor procurado" required>
-            <Input
-              large
-              value={form.setor}
-              onChange={(e) => setCampo('setor', e.target.value)}
-              placeholder="Ex.: Gabinete, Recursos Humanos..."
-            />
-          </Field>
-
-          <Field label="Observação" hint='Ex.: Liberado pela chefe de gabinete'>
-            <Textarea
-              large
-              rows={2}
-              value={form.observacao}
-              onChange={(e) => setCampo('observacao', e.target.value)}
-              placeholder="Opcional"
-            />
-          </Field>
 
           <Btn type="submit" full size="xl" icon={UserPlus} disabled={salvando}>
             {salvando ? 'Salvando...' : 'REGISTRAR VISITANTE'}
@@ -380,8 +481,10 @@ export function FormRegistrar({ onRegistrado }) {
 }
 
 export function ListaVisitantesHoje() {
+  const { ehGestor } = useAuth()
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
+  const [msg, setMsg] = useState('')
   const [busca, setBusca] = useState('')
 
   const filtrada = useMemo(() => {
@@ -410,19 +513,36 @@ export function ListaVisitantesHoje() {
 
   useEffect(() => { carregar() }, [])
 
+  async function excluir(v) {
+    if (!ehGestor) return
+    if (!confirm(`Excluir a visita de ${v.nome}?`)) return
+    setErro('')
+    setMsg('')
+    const { error } = await supabase.from('visitantes').delete().eq('id', v.id)
+    if (error) {
+      setErro(error.message.includes('policy') || error.code === '42501'
+        ? 'Somente administrador ou coordenadora podem excluir visitas. Rode supabase/politica-excluir-visitas.sql se ainda não rodou.'
+        : error.message)
+      return
+    }
+    setMsg('Visita excluída.')
+    await carregar()
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Visitantes de hoje</h1>
+          <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Servidores / Visitantes</h1>
           <p className="text-base mt-1" style={{ color: C.gray60 }}>
-            {new Date().toLocaleDateString('pt-BR')} · {filtrada.length} registro(s)
+            Registros de hoje · {new Date().toLocaleDateString('pt-BR')} · {filtrada.length}
           </p>
         </div>
         <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
       </div>
 
       {erro && <Alert type="error">{erro}</Alert>}
+      {msg && <Alert type="success">{msg}</Alert>}
 
       <Input
         large
@@ -433,26 +553,41 @@ export function ListaVisitantesHoje() {
 
       <Card>
         {itens.length === 0 ? (
-          <Empty>Nenhum visitante registrado hoje.</Empty>
+          <Empty>Nenhum registro hoje.</Empty>
         ) : (
           <div>
             {itens.map((v) => (
-              <div key={v.id} className="px-5 py-4 border-t flex flex-col sm:flex-row sm:items-center gap-2 justify-between" style={{ borderColor: C.gray3 }}>
-                <div>
-                  <div className="text-lg font-semibold" style={{ color: C.blueDark }}>{v.nome}</div>
-                  <div className="text-sm" style={{ color: C.gray60 }}>
-                    {v.setor} · CPF {v.cpf}
-                    {v.telefone ? ` · ${v.telefone}` : ''}
-                    {v.tipo === 'agendada' ? ' · Agendada' : ''}
-                  </div>
-                  {v.observacao && (
-                    <div className="text-sm mt-1" style={{ color: C.blueDark }}>
-                      Obs.: {v.observacao}
+              <div key={v.id} className="px-5 py-4 border-t flex flex-col sm:flex-row sm:items-center gap-3 justify-between" style={{ borderColor: C.gray3 }}>
+                <div className="flex items-start gap-3 min-w-0">
+                  {v.foto_url ? (
+                    <img src={v.foto_url} alt="" className="w-12 h-12 object-cover flex-shrink-0 border" style={{ borderColor: C.gray3 }} />
+                  ) : (
+                    <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: C.blue }}>
+                      {v.nome.split(' ').map((n) => n[0]).slice(0, 2).join('')}
                     </div>
                   )}
+                  <div className="min-w-0">
+                    <div className="text-lg font-semibold" style={{ color: C.blueDark }}>{v.nome}</div>
+                    <div className="text-sm" style={{ color: C.gray60 }}>
+                      {v.setor} · CPF {v.cpf}
+                      {v.telefone ? ` · ${v.telefone}` : ''}
+                      {v.servidor_id ? ' · Servidor municipal' : ' · Visitante'}
+                      {v.tipo === 'agendada' ? ' · Agendada' : ''}
+                    </div>
+                    {v.observacao && (
+                      <div className="text-sm mt-1" style={{ color: C.blueDark }}>Obs.: {v.observacao}</div>
+                    )}
+                  </div>
                 </div>
-                <div className="text-base font-mono" style={{ color: C.gray80 }}>
-                  {new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="text-base font-mono" style={{ color: C.gray80 }}>
+                    {new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  {ehGestor && (
+                    <Btn variant="danger" size="sm" icon={Trash2} onClick={() => excluir(v)}>
+                      Excluir
+                    </Btn>
+                  )}
                 </div>
               </div>
             ))}
