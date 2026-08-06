@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { C } from '../lib/theme'
 import { maskCpfExibicao } from '../lib/br'
 import { Btn, Card, Alert, Empty } from '../components/ui'
+import Paginacao, { usePaginacao } from '../components/Paginacao'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -19,6 +20,7 @@ export default function RelatorioDia() {
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
+  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 15)
 
   async function carregar() {
     setCarregando(true)
@@ -31,7 +33,6 @@ export default function RelatorioDia() {
       .lte('horario', fim)
       .order('horario', { ascending: true })
     if (error) {
-      // fallback se join falhar (coluna ainda não existe)
       const r2 = await supabase
         .from('visitantes')
         .select('*')
@@ -43,6 +44,7 @@ export default function RelatorioDia() {
     } else {
       setLista(data || [])
     }
+    reset()
     setCarregando(false)
   }
 
@@ -119,36 +121,46 @@ export default function RelatorioDia() {
         ) : lista.length === 0 ? (
           <Empty>Nenhum visitante hoje.</Empty>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ backgroundColor: C.gray1 }}>
-                <th className="text-left px-4 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Horário</th>
-                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Nome</th>
-                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>CPF</th>
-                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Setor</th>
-                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Órgão</th>
-                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Telefone</th>
-                <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Obs.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lista.map((v) => (
-                <tr key={v.id} className="border-t" style={{ borderColor: C.gray3 }}>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                  <td className="px-3 py-2 font-semibold" style={{ color: C.blueDark }}>{v.nome}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{maskCpfExibicao(v.cpf)}</td>
-                  <td className="px-3 py-2">{v.setor}</td>
-                  <td className="px-3 py-2">
-                    {v.servidor_id ? (v.servidores?.lotacao || '—') : '—'}
-                  </td>
-                  <td className="px-3 py-2">{v.telefone || '—'}</td>
-                  <td className="px-3 py-2 text-xs" style={{ color: C.gray60 }}>{v.observacao || '—'}</td>
+          <>
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ backgroundColor: C.gray1 }}>
+                  <th className="text-left px-4 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Horário</th>
+                  <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Nome</th>
+                  <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>CPF</th>
+                  <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Setor</th>
+                  <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Órgão</th>
+                  <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Telefone</th>
+                  <th className="text-left px-3 py-3 font-semibold text-xs uppercase" style={{ color: C.gray60 }}>Obs.</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {itens.map((v) => (
+                  <tr key={v.id} className="border-t" style={{ borderColor: C.gray3 }}>
+                    <td className="px-4 py-2 font-mono text-xs">
+                      {new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="px-3 py-2 font-semibold" style={{ color: C.blueDark }}>{v.nome}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{maskCpfExibicao(v.cpf)}</td>
+                    <td className="px-3 py-2">{v.setor}</td>
+                    <td className="px-3 py-2">
+                      {v.servidor_id ? (v.servidores?.lotacao || '—') : '—'}
+                    </td>
+                    <td className="px-3 py-2">{v.telefone || '—'}</td>
+                    <td className="px-3 py-2 text-xs" style={{ color: C.gray60 }}>{v.observacao || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="no-print">
+              <Paginacao
+                pagina={pagina}
+                totalPaginas={totalPaginas}
+                totalItens={lista.length}
+                onChange={irPara}
+              />
+            </div>
+          </>
         )}
       </Card>
 

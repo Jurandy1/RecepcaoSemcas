@@ -6,9 +6,9 @@ import { C, PAPEIS } from '../lib/theme'
 import {
   maskCpf, maskCpfExibicao, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf, somenteDigitos,
 } from '../lib/br'
-import { Btn, Card, Empty, Alert, Field, Input, Textarea, Select } from '../components/ui'
+import { Btn, Card, Empty, Alert, Field, Input, Textarea } from '../components/ui'
 import Paginacao, { usePaginacao } from '../components/Paginacao'
-import { useSetoresAtivos } from './SetoresProcurados'
+import { useSetoresAtivos, CampoSetorProcurado } from './SetoresProcurados'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -209,13 +209,17 @@ export function VisitantesGestor() {
   )
 }
 
-export function AgendamentosGestor() {
+export function AgendamentosGestor({ modoInicial = 'lista' }) {
   const { perfil } = useAuth()
-  const [modo, setModo] = useState('lista') // lista | novo
+  const [modo, setModo] = useState(modoInicial) // lista | novo
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
   const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
+
+  useEffect(() => {
+    setModo(modoInicial)
+  }, [modoInicial])
 
   async function carregar() {
     const { data, error } = await supabase
@@ -253,13 +257,13 @@ export function AgendamentosGestor() {
         <div>
           <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>Agendamentos</h1>
           <p className="text-sm mt-1" style={{ color: C.gray60 }}>
-            A partir de hoje · registre visitas agendadas como na recepção
+            A partir de hoje · admin e coordenadora também podem agendar visitas
           </p>
         </div>
         <div className="flex gap-2">
           <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
           <Btn icon={Plus} onClick={() => { setErro(''); setMsg(''); setModo('novo') }}>
-            Novo agendamento
+            Agendar visita
           </Btn>
         </div>
       </div>
@@ -517,18 +521,18 @@ function FormAgendarGestor({ perfil, onVoltar, onSalvo }) {
         setor: vis.setor || '',
         rotulo: `Já cadastrado · último setor ${vis.setor || '—'}`,
       })
-      setAvisoTipo('warn')
+      setAvisoTipo(dups.length ? 'warn' : 'info')
       setAviso(
         dups.length
-          ? `Visitante já cadastrado e já possui agendamento neste dia — evite duplicar.`
-          : 'Visitante externo já cadastrado — dados da última visita preenchidos.'
+          ? `Já cadastrado e já possui agendamento neste dia — evite duplicar.`
+          : 'Dados da última visita preenchidos. Se for servidor, busque também pelo nome (a lista importada quase não traz CPF).'
       )
       return
     }
 
     if (!dups.length) {
-      setAvisoTipo('warn')
-      setAviso('CPF não encontrado na lista de servidores. Agendamento como visitante externo.')
+      setAvisoTipo('info')
+      setAviso('CPF ainda não vinculado a nenhum servidor (a lista importada quase não traz CPF). Busque pelo nome se for servidor municipal.')
     }
   }, [form.data, verificarDuplicata])
 
@@ -659,22 +663,13 @@ function FormAgendarGestor({ perfil, onVoltar, onSalvo }) {
             </Field>
           </div>
 
-          <Field label="Setor procurado" required>
-            {setores.length > 0 ? (
-              <Select large value={form.setor} onChange={(e) => setCampo('setor', e.target.value)}>
-                <option value="">Selecione o setor...</option>
-                {setores.map((s) => (
-                  <option key={s.id} value={s.nome}>{s.nome}</option>
-                ))}
-              </Select>
-            ) : (
-              <Input
-                large
-                value={form.setor}
-                onChange={(e) => setCampo('setor', e.target.value)}
-                placeholder="Ex.: Gabinete (cadastre setores no menu Setor procurado)"
-              />
-            )}
+          <Field label="Setor procurado" required hint="Escolha da lista ou use Outro para digitar">
+            <CampoSetorProcurado
+              large
+              value={form.setor}
+              onChange={(v) => setCampo('setor', v)}
+              setores={setores}
+            />
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

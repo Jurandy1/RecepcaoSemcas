@@ -44,7 +44,7 @@ function HistoricoVisitante({ pessoa, onVoltar }) {
   const [visitas, setVisitas] = useState([])
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
-  const { pagina, totalPaginas, itens, irPara } = usePaginacao(visitas, 15)
+  const { pagina, totalPaginas, itens, irPara } = usePaginacao(visitas, 10)
 
   useEffect(() => {
     let ativo = true
@@ -186,7 +186,7 @@ export default function VisitantesCadastrados() {
     })
   }, [pessoas, busca])
 
-  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(filtrada, 12)
+  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(filtrada, 10)
 
   async function carregar() {
     setCarregando(true)

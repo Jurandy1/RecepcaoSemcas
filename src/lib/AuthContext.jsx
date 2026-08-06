@@ -9,6 +9,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [perfil, setPerfil] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [sessaoExpirada, setSessaoExpirada] = useState(false)
 
   async function carregarPerfil(userId) {
     if (!supabase) return null
@@ -21,6 +22,10 @@ export function AuthProvider({ children }) {
 
     if (error) {
       console.error('Erro ao carregar perfil:', error.message)
+      const m = (error.message || '').toLowerCase()
+      if (m.includes('jwt') || m.includes('session') || error.code === 'PGRST301') {
+        setSessaoExpirada(true)
+      }
     }
 
     if (data) {
@@ -62,9 +67,15 @@ export function AuthProvider({ children }) {
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
-      if (s?.user) {
+      if (event === 'SIGNED_OUT') {
+        setPerfil(null)
+        setSessaoExpirada(true)
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSessaoExpirada(false)
+        if (s?.user) carregarPerfil(s.user.id)
+      } else if (s?.user) {
         carregarPerfil(s.user.id)
       } else {
         setPerfil(null)
@@ -84,6 +95,7 @@ export function AuthProvider({ children }) {
       password: senha
     })
     if (error) throw error
+    setSessaoExpirada(false)
     setSession(data.session)
     const p = await carregarPerfil(data.user.id)
     return { user: data.user, perfil: p }
@@ -93,6 +105,7 @@ export function AuthProvider({ children }) {
     if (supabase) await supabase.auth.signOut()
     setPerfil(null)
     setSession(null)
+    setSessaoExpirada(false)
   }
 
   async function refreshPerfil() {
@@ -114,6 +127,7 @@ export function AuthProvider({ children }) {
       ehGestor,
       isLoggedIn: !!session?.user,
       supabaseConfigured,
+      sessaoExpirada,
     }}>
       {children}
     </AuthContext.Provider>

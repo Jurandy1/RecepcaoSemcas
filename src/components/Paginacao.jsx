@@ -4,12 +4,12 @@ import { C } from '../lib/theme'
 import { Btn } from './ui'
 
 export default function Paginacao({ pagina, totalPaginas, onChange, totalItens }) {
-  if (totalPaginas <= 1) return null
+  if (!totalItens && totalPaginas <= 1) return null
 
   return (
     <div className="px-5 py-3 border-t flex items-center justify-between gap-3" style={{ borderColor: C.gray3 }}>
       <div className="text-sm" style={{ color: C.gray60 }}>
-        Página {pagina} de {totalPaginas}
+        Página {pagina} de {Math.max(totalPaginas, 1)}
         {typeof totalItens === 'number' ? ` · ${totalItens} registro(s)` : ''}
       </div>
       <div className="flex items-center gap-2">
@@ -17,7 +17,7 @@ export default function Paginacao({ pagina, totalPaginas, onChange, totalItens }
           variant="secondary"
           size="sm"
           icon={ChevronLeft}
-          disabled={pagina <= 1}
+          disabled={pagina <= 1 || totalPaginas <= 1}
           onClick={() => onChange(pagina - 1)}
         >
           Anterior
@@ -25,7 +25,7 @@ export default function Paginacao({ pagina, totalPaginas, onChange, totalItens }
         <Btn
           variant="secondary"
           size="sm"
-          disabled={pagina >= totalPaginas}
+          disabled={pagina >= totalPaginas || totalPaginas <= 1}
           onClick={() => onChange(pagina + 1)}
         >
           Próxima <ChevronRight size={14} />

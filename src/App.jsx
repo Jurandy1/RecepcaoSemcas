@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText, ContactRound, Building2
+  Home, UserPlus, Calendar, Users, Mail, ClipboardList, FileText, ContactRound, Building2, CalendarPlus
 } from 'lucide-react'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { supabaseConfigured } from './lib/supabase'
@@ -77,6 +77,7 @@ function menusPorPapel(papel) {
     { id: 'home', label: 'Painel', icon: Home },
     { id: 'registrar', label: 'Registrar visitante', icon: UserPlus },
     { id: 'visitantes', label: 'Servidores / Visitantes', icon: ClipboardList },
+    { id: 'agendar', label: 'Agendar visita', icon: CalendarPlus },
     { id: 'agendamentos', label: 'Agendamentos', icon: Calendar },
     { id: 'setores', label: 'Setor procurado', icon: Building2 },
     { id: 'relatorio', label: 'Relatório do dia', icon: FileText },
@@ -84,8 +85,8 @@ function menusPorPapel(papel) {
     { id: 'convites', label: 'Enviar convites', icon: Mail },
   ]
 
-  // Somente administrador
-  if (papel === 'admin') {
+  // Admin e coordenadora — histórico de visitantes
+  if (papel === 'admin' || papel === 'coordenadora') {
     menus.splice(3, 0, {
       id: 'cadastrados',
       label: 'Visitantes cadastrados',
@@ -97,7 +98,7 @@ function menusPorPapel(papel) {
 }
 
 function AppInterno() {
-  const { loading, isLoggedIn, perfil, logout } = useAuth()
+  const { loading, isLoggedIn, perfil, logout, sessaoExpirada } = useAuth()
   const tokenUrl = useMemo(() => lerTokenConvite(), [])
   const [telaPublica, setTelaPublica] = useState(tokenUrl ? 'aceitar' : 'login')
   const [pagina, setPagina] = useState('home')
@@ -128,7 +129,16 @@ function AppInterno() {
         />
       )
     }
-    return <Login onIrAceitar={() => setTelaPublica('aceitar')} />
+    return (
+      <>
+        {sessaoExpirada && (
+          <div className="fixed top-0 left-0 right-0 z-50 p-3 text-center text-sm font-semibold" style={{ backgroundColor: C.orangeBg, color: C.orange }}>
+            Sessão expirada. Faça login de novo.
+          </div>
+        )}
+        <Login onIrAceitar={() => setTelaPublica('aceitar')} />
+      </>
+    )
   }
 
   if (!perfil) {
@@ -161,19 +171,19 @@ function AppInterno() {
 
   const menus = menusPorPapel(perfil.papel)
   const ehGestor = perfil.papel === 'admin' || perfil.papel === 'coordenadora'
-  const irParaVisitantes = () => setPagina('visitantes')
 
   let conteudo = null
   if (perfil.papel === 'recepcionista') {
     if (pagina === 'relatorio') conteudo = <RelatorioDia />
-    else conteudo = <Recepcionista pagina={pagina} onRegistrado={irParaVisitantes} />
+    else conteudo = <Recepcionista pagina={pagina} />
   } else if (perfil.papel === 'setor') {
     conteudo = <Setor pagina={pagina} />
   } else if (ehGestor) {
-    if (pagina === 'registrar') conteudo = <Recepcionista pagina="home" onRegistrado={irParaVisitantes} />
+    if (pagina === 'registrar') conteudo = <Recepcionista pagina="home" />
     else if (pagina === 'visitantes') conteudo = <Recepcionista pagina="visitantes" />
-    else if (pagina === 'cadastrados' && perfil.papel === 'admin') conteudo = <VisitantesCadastrados />
-    else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor />
+    else if (pagina === 'cadastrados') conteudo = <VisitantesCadastrados />
+    else if (pagina === 'agendar') conteudo = <AgendamentosGestor modoInicial="novo" />
+    else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor modoInicial="lista" />
     else if (pagina === 'setores') conteudo = <SetoresProcurados />
     else if (pagina === 'relatorio') conteudo = <RelatorioDia />
     else if (pagina === 'usuarios') conteudo = <Usuarios />

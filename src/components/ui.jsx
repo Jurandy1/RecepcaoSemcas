@@ -1,5 +1,5 @@
 import { C } from '../lib/theme'
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 
 export function Logo({ size = 40 }) {
@@ -47,19 +47,21 @@ export function Field({ label, required, hint, children }) {
   )
 }
 
-export function Input({ large, ...props }) {
+export const Input = forwardRef(function Input({ large, ...props }, ref) {
   return (
     <input
+      ref={ref}
       {...props}
       className={`w-full border focus:outline-none focus:ring-2 ${large ? 'px-4 py-4 text-lg' : 'px-3 py-2.5 text-sm'}`}
       style={{ borderColor: C.gray5, backgroundColor: C.inputBg, color: C.gray80, ...props.style }}
     />
   )
-}
+})
 
-export function Select({ large, children, ...props }) {
+export const Select = forwardRef(function Select({ large, children, ...props }, ref) {
   return (
     <select
+      ref={ref}
       {...props}
       className={`w-full border focus:outline-none focus:ring-2 ${large ? 'px-4 py-4 text-lg' : 'px-3 py-2.5 text-sm'}`}
       style={{ borderColor: C.gray5, backgroundColor: C.inputBg, color: C.gray80 }}
@@ -67,7 +69,7 @@ export function Select({ large, children, ...props }) {
       {children}
     </select>
   )
-}
+})
 
 export function Textarea({ large, ...props }) {
   return (

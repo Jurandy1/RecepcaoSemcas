@@ -4,9 +4,13 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C } from '../lib/theme'
 import { maskCpf, maskCpfExibicao, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf } from '../lib/br'
-import { Btn, Field, Input, Textarea, Card, Alert, Empty, FotoAmpliavel, Select } from '../components/ui'
+import { salvarFotoVisitante } from '../lib/fotos'
+import { Btn, Field, Input, Textarea, Card, Alert, Empty, FotoAmpliavel } from '../components/ui'
 import Paginacao, { usePaginacao } from '../components/Paginacao'
-import { useSetoresAtivos } from './SetoresProcurados'
+import { useSetoresAtivos, CampoSetorProcurado } from './SetoresProcurados'
+
+/** Se true, exige foto no registro (balcão SEMCAS). */
+const FOTO_OBRIGATORIA = false
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -250,9 +254,11 @@ export function FormRegistrar({ onRegistrado }) {
   const [foto, setFoto] = useState(null)
   const [servidorId, setServidorId] = useState(null)
   const [orgao, setOrgao] = useState('')
+  const [servidorSemCpf, setServidorSemCpf] = useState(false)
   const [aviso, setAviso] = useState('')
   const [avisoTipo, setAvisoTipo] = useState('info')
   const [erro, setErro] = useState('')
+  const [msgOk, setMsgOk] = useState('')
   const [salvando, setSalvando] = useState(false)
   const [sugestoes, setSugestoes] = useState([])
   const [mostrarSug, setMostrarSug] = useState(false)
@@ -260,12 +266,30 @@ export function FormRegistrar({ onRegistrado }) {
   const debounceRef = useRef(null)
   const servidorIdRef = useRef(null)
   const orgaoRef = useRef('')
+  const nomeRef = useRef(null)
+  const cpfRef = useRef(null)
+  const setorRef = useRef(null)
 
   useEffect(() => { servidorIdRef.current = servidorId }, [servidorId])
   useEffect(() => { orgaoRef.current = orgao }, [orgao])
 
   function setCampo(k, v) {
     setForm((f) => ({ ...f, [k]: v }))
+  }
+
+  function focarProximoCampo({ nome, cpf, setor }) {
+    requestAnimationFrame(() => {
+      const cpfOk = cpf && String(cpf).replace(/\D/g, '').length === 11 && cpfValido(cpf)
+      if (!cpfOk) {
+        cpfRef.current?.focus()
+        return
+      }
+      if (!setor?.trim()) {
+        setorRef.current?.focus()
+        return
+      }
+      nomeRef.current?.focus()
+    })
   }
 
   async function carregarFotoAnterior({ cpf, nome, servidorId: sid }) {
@@ -290,36 +314,47 @@ export function FormRegistrar({ onRegistrado }) {
     if (data?.foto_url) setFoto(data.foto_url)
   }
 
-  function marcarServidor(s) {
+  function marcarServidor(s, { semCpf = false } = {}) {
     setServidorId(s.id)
     setOrgao(s.lotacao || s.setor || '')
+    setServidorSemCpf(semCpf)
     setAvisoTipo('info')
-    setAviso(`Servidor municipal · Órgão: ${s.lotacao || s.setor || '—'}${s.matricula ? ` · Mat. ${s.matricula}` : ''}`)
+    if (semCpf) {
+      setAviso(`Servidor municipal · Órgão: ${s.lotacao || s.setor || '—'} — sem CPF no cadastro. Digite o CPF para vincular.`)
+    } else {
+      setAviso(`Servidor municipal · Órgão: ${s.lotacao || s.setor || '—'}${s.matricula ? ` · Mat. ${s.matricula}` : ''}`)
+    }
   }
 
   function aplicarSugestao(item) {
+    const cpfNovo = item.cpf ? formatCpf(item.cpf) : undefined
+    const setorNovo = item.tipo === 'servidor' ? undefined : (item.setor || undefined)
     setForm((f) => ({
       ...f,
       nome: item.nome || f.nome,
-      cpf: item.cpf ? formatCpf(item.cpf) : f.cpf,
+      cpf: cpfNovo || f.cpf,
       telefone: item.telefone ? maskTelefoneBr(item.telefone) : f.telefone,
-      // setor procurado (destino) — não sobrescrever com lotação do servidor
-      setor: item.tipo === 'servidor' ? f.setor : (item.setor || f.setor),
+      setor: setorNovo !== undefined ? (setorNovo || f.setor) : f.setor,
     }))
 
     if (item.tipo === 'servidor') {
+      const semCpf = !item.cpf
       marcarServidor({
         id: item.id,
         lotacao: item.orgao || item.setor,
         matricula: item.matricula,
-      })
+      }, { semCpf })
       carregarFotoAnterior({
         cpf: item.cpf,
         nome: item.nome,
         servidorId: item.id,
       })
+      focarProximoCampo({
+        nome: item.nome,
+        cpf: item.cpf || '',
+        setor: form.setor,
+      })
     } else {
-      // Visitante: se já veio vinculado a servidor, mantém
       if (item.servidor_id) {
         marcarServidor({
           id: item.servidor_id,
@@ -329,6 +364,7 @@ export function FormRegistrar({ onRegistrado }) {
       } else {
         setServidorId(null)
         setOrgao('')
+        setServidorSemCpf(false)
         setAvisoTipo('info')
         setAviso('Visitante já cadastrado anteriormente')
       }
@@ -340,6 +376,11 @@ export function FormRegistrar({ onRegistrado }) {
           servidorId: item.servidor_id,
         })
       }
+      focarProximoCampo({
+        nome: item.nome,
+        cpf: item.cpf || form.cpf,
+        setor: item.setor || form.setor,
+      })
     }
     setSugestoes([])
     setMostrarSug(false)
@@ -458,6 +499,7 @@ export function FormRegistrar({ onRegistrado }) {
 
     // Já havia selecionado um servidor (ex.: sem CPF) — NÃO desmarcar
     if (sidAtual) {
+      setServidorSemCpf(false)
       setAvisoTipo('info')
       setAviso(
         `Servidor municipal · Órgão: ${orgaoAtual || '—'} — CPF será vinculado ao cadastro deste servidor.`
@@ -499,26 +541,28 @@ export function FormRegistrar({ onRegistrado }) {
         servidor_id: null,
         rotulo: `Já cadastrado · último setor ${vis.setor || '—'}`,
       })
-      setAvisoTipo('warn')
-      setAviso('Visitante externo (não é servidor do município) — dados da última visita preenchidos.')
+      setAvisoTipo('info')
+      setAviso('Dados da última visita preenchidos. Se for servidor, busque pelo nome (a lista importada quase não traz CPF).')
       return
     }
 
     setServidorId(null)
     setOrgao('')
+    setServidorSemCpf(false)
     setSugestoes([])
     setMostrarSug(false)
-    setAvisoTipo('warn')
-    setAviso('CPF não encontrado na lista de servidores do município. Cadastro como visitante externo.')
+    setAvisoTipo('info')
+    setAviso('CPF ainda não vinculado a nenhum servidor (a lista importada quase não traz CPF). Busque pelo nome se for servidor municipal.')
   }, [])
 
   function onNomeChange(e) {
     const nome = e.target.value
     setCampo('nome', nome)
-    // Só limpa servidor se o usuário estiver digitando um nome diferente do vínculo
     setServidorId(null)
     setOrgao('')
+    setServidorSemCpf(false)
     setAviso('')
+    setMsgOk('')
     setCampoSug('nome')
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
@@ -529,7 +573,7 @@ export function FormRegistrar({ onRegistrado }) {
   function onCpfChange(e) {
     const cpf = maskCpf(e.target.value)
     setCampo('cpf', cpf)
-    // Não limpa aviso/servidor até terminar a busca — evita “não é servidor” indevido
+    setMsgOk('')
     if (String(cpf).replace(/\D/g, '').length === 11) {
       if (!cpfValido(cpf)) {
         setErro('CPF inválido.')
@@ -543,6 +587,7 @@ export function FormRegistrar({ onRegistrado }) {
   async function registrar(e) {
     e.preventDefault()
     setErro('')
+    setMsgOk('')
 
     if (!form.nome.trim() || !form.cpf.trim() || !form.setor.trim()) {
       setErro('Preencha Nome, CPF e Setor.')
@@ -556,10 +601,15 @@ export function FormRegistrar({ onRegistrado }) {
       setErro('Telefone inválido. Use o formato (00) 00000-0000.')
       return
     }
+    if (FOTO_OBRIGATORIA && !foto) {
+      setErro('A foto do visitante é obrigatória neste balcão.')
+      return
+    }
 
     setSalvando(true)
     try {
       const cpfFmt = formatCpf(form.cpf)
+      let cpfVinculado = false
 
       let sid = servidorId
       if (sid) {
@@ -574,7 +624,6 @@ export function FormRegistrar({ onRegistrado }) {
             atualizado_em: new Date().toISOString(),
           }).eq('id', sid)
           if (upErr) {
-            // CPF pode já existir em outro registro
             if (upErr.code === '23505') {
               const { data: porCpf } = await supabase
                 .from('servidores')
@@ -585,6 +634,8 @@ export function FormRegistrar({ onRegistrado }) {
             } else {
               throw upErr
             }
+          } else {
+            cpfVinculado = true
           }
         }
       } else {
@@ -596,13 +647,15 @@ export function FormRegistrar({ onRegistrado }) {
         if (porCpf) sid = porCpf.id
       }
 
+      const fotoUrl = await salvarFotoVisitante(foto, cpfFmt)
+
       const { error } = await supabase.from('visitantes').insert({
         nome: form.nome.trim(),
         cpf: cpfFmt,
         telefone: form.telefone.trim() || null,
         setor: form.setor.trim(),
         observacao: form.observacao.trim() || null,
-        foto_url: foto || null,
+        foto_url: fotoUrl || null,
         tipo: 'espontanea',
         registrado_por: perfil?.id,
         servidor_id: sid || null,
@@ -613,10 +666,23 @@ export function FormRegistrar({ onRegistrado }) {
       setFoto(null)
       setServidorId(null)
       setOrgao('')
+      setServidorSemCpf(false)
       setAviso('')
-      onRegistrado?.()
+      setMsgOk(
+        cpfVinculado
+          ? 'Visitante registrado. CPF vinculado ao servidor.'
+          : 'Visitante registrado com sucesso.'
+      )
+      requestAnimationFrame(() => nomeRef.current?.focus())
+      // Mantém no balcão de registro; lista pode ser aberta pelo menu
+      onRegistrado?.({ ficouNaTela: true })
     } catch (err) {
-      setErro(err.message || 'Erro ao registrar.')
+      const m = (err.message || '').toLowerCase()
+      if (m.includes('jwt') || m.includes('session') || m.includes('not authenticated') || err.status === 401) {
+        setErro('Sessão expirada. Faça login de novo.')
+      } else {
+        setErro(err.message || 'Erro ao registrar.')
+      }
     } finally {
       setSalvando(false)
     }
@@ -628,11 +694,18 @@ export function FormRegistrar({ onRegistrado }) {
         <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Registrar visitante</h1>
         <p className="text-base mt-1" style={{ color: C.gray60 }}>
           Digite o nome ou CPF — o sistema identifica se é servidor municipal ou visitante externo.
+          {!window.isSecureContext && (
+            <span style={{ color: C.orange }}> · Webcam: use localhost ou HTTPS.</span>
+          )}
         </p>
       </div>
 
       {erro && <Alert type="error">{erro}</Alert>}
+      {msgOk && <Alert type="success">{msgOk}</Alert>}
       {aviso && <Alert type={avisoTipo}>{aviso}</Alert>}
+      {servidorSemCpf && (
+        <Alert type="warn">Servidor sem CPF no cadastro — digite o CPF para vincular.</Alert>
+      )}
 
       <Card className="p-6 sm:p-8">
         <form onSubmit={registrar} className="space-y-5" autoComplete="off">
@@ -643,6 +716,7 @@ export function FormRegistrar({ onRegistrado }) {
               <Field label="Nome completo" required>
                 <div className="relative">
                   <Input
+                    ref={nomeRef}
                     large
                     value={form.nome}
                     onChange={onNomeChange}
@@ -661,6 +735,7 @@ export function FormRegistrar({ onRegistrado }) {
                 <Field label="CPF" required hint="000.000.000-00">
                   <div className="relative">
                     <Input
+                      ref={cpfRef}
                       large
                       value={form.cpf}
                       onChange={onCpfChange}
@@ -688,22 +763,14 @@ export function FormRegistrar({ onRegistrado }) {
                 </Field>
               )}
 
-              <Field label="Setor procurado" required>
-                {setores.length > 0 ? (
-                  <Select large value={form.setor} onChange={(e) => setCampo('setor', e.target.value)}>
-                    <option value="">Selecione o setor...</option>
-                    {setores.map((s) => (
-                      <option key={s.id} value={s.nome}>{s.nome}</option>
-                    ))}
-                  </Select>
-                ) : (
-                  <Input
-                    large
-                    value={form.setor}
-                    onChange={(e) => setCampo('setor', e.target.value)}
-                    placeholder="Ex.: Gabinete, Recursos Humanos..."
-                  />
-                )}
+              <Field label="Setor procurado" required hint="Escolha da lista ou use Outro para digitar">
+                <CampoSetorProcurado
+                  large
+                  value={form.setor}
+                  onChange={(v) => setCampo('setor', v)}
+                  setores={setores}
+                  inputRef={setorRef}
+                />
               </Field>
 
               <Field label="Observação" hint='Ex.: Liberado pela chefe de gabinete'>
@@ -713,6 +780,12 @@ export function FormRegistrar({ onRegistrado }) {
                   value={form.observacao}
                   onChange={(e) => setCampo('observacao', e.target.value)}
                   placeholder="Opcional"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      e.currentTarget.form?.requestSubmit()
+                    }
+                  }}
                 />
               </Field>
             </div>
@@ -733,16 +806,22 @@ export function ListaVisitantesHoje() {
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
   const [busca, setBusca] = useState('')
+  const [filtro, setFiltro] = useState('todos') // todos | servidores | externos | agendados
 
   const filtrada = useMemo(() => {
-    if (!busca.trim()) return lista
-    const q = busca.trim().toLowerCase()
-    return lista.filter((v) =>
-      `${v.nome} ${v.cpf} ${v.setor} ${v.observacao || ''} ${v.servidores?.lotacao || ''}`.toLowerCase().includes(q)
-    )
-  }, [lista, busca])
+    let base = lista
+    if (filtro === 'servidores') base = base.filter((v) => v.servidor_id)
+    else if (filtro === 'externos') base = base.filter((v) => !v.servidor_id)
+    else if (filtro === 'agendados') base = base.filter((v) => v.tipo === 'agendada')
 
-  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(filtrada, 10)
+    if (!busca.trim()) return base
+    const q = busca.trim().toLowerCase()
+    return base.filter((v) =>
+      `${v.nome} ${v.cpf} ${v.setor} ${v.telefone || ''} ${v.observacao || ''} ${v.servidores?.lotacao || ''}`.toLowerCase().includes(q)
+    )
+  }, [lista, busca, filtro])
+
+  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(filtrada, 8)
 
   async function carregar() {
     const inicio = `${hojeISO()}T00:00:00`
@@ -770,6 +849,11 @@ export function ListaVisitantesHoje() {
 
   useEffect(() => { carregar() }, [])
 
+  useEffect(() => {
+    const id = setInterval(() => { carregar() }, 30000)
+    return () => clearInterval(id)
+  }, [])
+
   async function excluir(v) {
     if (!ehGestor) return
     if (!confirm(`Excluir a visita de ${v.nome}?`)) return
@@ -786,6 +870,13 @@ export function ListaVisitantesHoje() {
     await carregar()
   }
 
+  const chips = [
+    { id: 'todos', label: 'Todos' },
+    { id: 'servidores', label: 'Servidores' },
+    { id: 'externos', label: 'Externos' },
+    { id: 'agendados', label: 'Agendados' },
+  ]
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
@@ -793,6 +884,7 @@ export function ListaVisitantesHoje() {
           <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Servidores / Visitantes</h1>
           <p className="text-base mt-1" style={{ color: C.gray60 }}>
             Registros de hoje · {new Date().toLocaleDateString('pt-BR')} · {filtrada.length}
+            <span className="text-xs ml-2" style={{ color: C.gray20 }}>atualiza a cada 30s</span>
           </p>
         </div>
         <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
@@ -801,11 +893,29 @@ export function ListaVisitantesHoje() {
       {erro && <Alert type="error">{erro}</Alert>}
       {msg && <Alert type="success">{msg}</Alert>}
 
+      <div className="flex flex-wrap gap-2">
+        {chips.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => { setFiltro(c.id); irPara(1) }}
+            className="px-3 py-2 text-sm font-semibold border"
+            style={{
+              backgroundColor: filtro === c.id ? C.blue : C.white,
+              color: filtro === c.id ? C.white : C.blueDark,
+              borderColor: filtro === c.id ? C.blue : C.gray3,
+            }}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
       <Input
         large
         value={busca}
         onChange={(e) => { setBusca(e.target.value); irPara(1) }}
-        placeholder="Buscar por nome, CPF ou setor..."
+        placeholder="Buscar por nome, CPF, telefone, setor ou órgão..."
       />
 
       <Card>
@@ -833,11 +943,15 @@ export function ListaVisitantesHoje() {
                     <div className="text-sm" style={{ color: C.gray60 }}>
                       {v.setor} · CPF {maskCpfExibicao(v.cpf)}
                       {v.telefone ? ` · ${v.telefone}` : ''}
-                      {v.servidor_id
-                        ? ` · Servidor municipal · Órgão ${v.servidores?.lotacao || '—'}`
-                        : ' · Visitante'}
                       {v.tipo === 'agendada' ? ' · Agendada' : ''}
                     </div>
+                    {v.servidor_id ? (
+                      <div className="text-sm mt-1 font-semibold" style={{ color: C.blue }}>
+                        Servidor municipal · Órgão {v.servidores?.lotacao || '—'}
+                      </div>
+                    ) : (
+                      <div className="text-sm mt-1" style={{ color: C.gray20 }}>Visitante externo</div>
+                    )}
                     {v.observacao && (
                       <div className="text-sm mt-1" style={{ color: C.blueDark }}>Obs.: {v.observacao}</div>
                     )}
@@ -873,6 +987,7 @@ export function AgendaDia() {
   const [agendamentos, setAgendamentos] = useState([])
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
+  const [chegandoId, setChegandoId] = useState(null)
   const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(agendamentos, 10)
 
   async function carregar() {
@@ -890,10 +1005,26 @@ export function AgendaDia() {
   useEffect(() => { carregar() }, [])
 
   async function marcarChegou(ag) {
+    if (chegandoId) return
     setErro('')
+    setChegandoId(ag.id)
     try {
       await supabase.from('agendamentos').update({ status: 'chegou' }).eq('id', ag.id)
       const cpf = ag.cpf && cpfValido(ag.cpf) ? formatCpf(ag.cpf) : (ag.cpf || '000.000.000-00')
+
+      let fotoAnterior = null
+      if (ag.cpf && cpfValido(ag.cpf)) {
+        const { data: ant } = await supabase
+          .from('visitantes')
+          .select('foto_url')
+          .eq('cpf', formatCpf(ag.cpf))
+          .not('foto_url', 'is', null)
+          .order('horario', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        fotoAnterior = ant?.foto_url || null
+      }
+
       const { error } = await supabase.from('visitantes').insert({
         nome: ag.nome_visitante,
         cpf,
@@ -903,14 +1034,25 @@ export function AgendaDia() {
         agendamento_id: ag.id,
         registrado_por: perfil?.id,
         observacao: ag.observacao || null,
+        foto_url: fotoAnterior,
       })
       if (error) throw error
       setMsg(`${ag.nome_visitante} registrado(a) na chegada.`)
       await carregar()
     } catch (err) {
-      setErro(err.message || 'Erro ao registrar chegada.')
+      const m = (err.message || '').toLowerCase()
+      if (m.includes('jwt') || m.includes('session') || m.includes('not authenticated')) {
+        setErro('Sessão expirada. Faça login de novo.')
+      } else {
+        setErro(err.message || 'Erro ao registrar chegada.')
+      }
+    } finally {
+      setChegandoId(null)
     }
   }
+
+  const pendentes = agendamentos.filter((a) => a.status === 'agendado').length
+  const chegaram = agendamentos.filter((a) => a.status === 'chegou').length
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-5">
@@ -919,6 +1061,10 @@ export function AgendaDia() {
           <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Agenda do dia</h1>
           <p className="text-base mt-1" style={{ color: C.gray60 }}>
             Visitas agendadas — {new Date().toLocaleDateString('pt-BR')}
+            {' · '}
+            <span style={{ color: C.orange }}>{pendentes} aguardando</span>
+            {' · '}
+            <span style={{ color: C.green }}>{chegaram} chegaram</span>
           </p>
         </div>
         <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
@@ -932,21 +1078,45 @@ export function AgendaDia() {
           <Empty>Nenhum agendamento para hoje.</Empty>
         ) : (
           itens.map((a) => (
-            <div key={a.id} className="px-5 py-5 border-b flex flex-col sm:flex-row sm:items-center gap-4" style={{ borderColor: C.gray3 }}>
+            <div
+              key={a.id}
+              className="px-5 py-5 border-b flex flex-col sm:flex-row sm:items-center gap-4"
+              style={{
+                borderColor: C.gray3,
+                backgroundColor: a.status === 'chegou' ? C.greenBg : a.status === 'agendado' ? C.orangeBg : C.card,
+              }}
+            >
               <div className="flex-1">
-                <div className="text-xl font-bold" style={{ color: C.blueDark }}>{a.nome_visitante}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-xl font-bold" style={{ color: C.blueDark }}>{a.nome_visitante}</div>
+                  {a.status === 'agendado' && (
+                    <span className="text-xs font-bold px-2 py-1" style={{ backgroundColor: C.orange, color: C.white }}>
+                      AGUARDANDO
+                    </span>
+                  )}
+                  {a.status === 'chegou' && (
+                    <span className="text-xs font-bold px-2 py-1" style={{ backgroundColor: C.green, color: C.white }}>
+                      CHEGOU
+                    </span>
+                  )}
+                </div>
                 <div className="text-base mt-1" style={{ color: C.gray60 }}>
                   {String(a.hora).slice(0, 5)} · Setor: <strong>{a.setor}</strong>
                   {a.sala ? ` · Sala ${a.sala}` : ''}
                 </div>
               </div>
               {a.status === 'chegou' ? (
-                <span className="text-base font-semibold px-3 py-2" style={{ backgroundColor: C.greenBg, color: C.green }}>
+                <span className="text-base font-semibold px-3 py-2" style={{ backgroundColor: C.white, color: C.green }}>
                   Já chegou
                 </span>
               ) : (
-                <Btn size="lg" icon={UserPlus} onClick={() => marcarChegou(a)}>
-                  Chegou — registrar
+                <Btn
+                  size="lg"
+                  icon={UserPlus}
+                  onClick={() => marcarChegou(a)}
+                  disabled={chegandoId === a.id}
+                >
+                  {chegandoId === a.id ? 'Registrando...' : 'Chegou — registrar'}
                 </Btn>
               )}
             </div>
