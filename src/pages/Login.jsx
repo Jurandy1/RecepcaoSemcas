@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Eye, EyeOff, ChevronRight } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { C } from '../lib/theme'
-import { Logo, Btn, Field, Input, Alert } from '../components/ui'
+import { Btn, Field, Input, Alert } from '../components/ui'
 
 export default function Login({ onIrAceitar }) {
   const { login } = useAuth()
@@ -48,23 +48,20 @@ export default function Login({ onIrAceitar }) {
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <header className="border-b" style={{ borderColor: 'rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.08)' }}>
-          <div className="max-w-5xl mx-auto px-6 py-4 flex items-center gap-3">
-            <Logo size={48} />
-            <div>
-              <div className="text-xs font-semibold tracking-wide uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                Secretaria Municipal da Criança e Assistência Social
-              </div>
-              <div className="text-lg font-bold text-white">SEMCAS</div>
+          <div className="max-w-5xl mx-auto px-6 py-4">
+            <div className="text-xs font-semibold tracking-wide uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              Secretaria Municipal da Criança e Assistência Social
             </div>
+            <div className="text-lg font-bold text-white">SEMCAS · Controle de Atendimento</div>
           </div>
         </header>
 
         <main className="flex-1 flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-md">
             <div className="mb-6 text-white">
-              <h1 className="text-2xl font-bold mb-1">Controle de Atendimento</h1>
+              <h1 className="text-2xl font-bold mb-1">Entrar no sistema</h1>
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                Entre com seu e-mail e senha.
+                Use seu e-mail e senha.
               </p>
             </div>
 

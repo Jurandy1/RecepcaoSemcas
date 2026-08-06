@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Home, UserPlus, Calendar, Users, Mail, ClipboardList
 } from 'lucide-react'
@@ -17,6 +17,14 @@ import {
   AgendamentosGestor,
 } from './pages/Gestor'
 
+function lerTokenConvite() {
+  try {
+    return new URLSearchParams(window.location.search).get('convite') || ''
+  } catch {
+    return ''
+  }
+}
+
 function menusPorPapel(papel) {
   if (papel === 'recepcionista') {
     return [
@@ -33,6 +41,7 @@ function menusPorPapel(papel) {
   // admin e coordenadora
   return [
     { id: 'home', label: 'Painel', icon: Home },
+    { id: 'registrar', label: 'Registrar visitante', icon: UserPlus },
     { id: 'visitantes', label: 'Visitantes', icon: ClipboardList },
     { id: 'agendamentos', label: 'Agendamentos', icon: Calendar },
     { id: 'usuarios', label: 'Usuários', icon: Users },
@@ -42,8 +51,15 @@ function menusPorPapel(papel) {
 
 function AppInterno() {
   const { loading, isLoggedIn, perfil, logout } = useAuth()
-  const [telaPublica, setTelaPublica] = useState('login') // login | aceitar
+  const tokenUrl = useMemo(() => lerTokenConvite(), [])
+  const [telaPublica, setTelaPublica] = useState(tokenUrl ? 'aceitar' : 'login')
   const [pagina, setPagina] = useState('home')
+
+  function limparQueryConvite() {
+    if (window.location.search.includes('convite=')) {
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }
 
   if (loading) {
     return (
@@ -55,18 +71,25 @@ function AppInterno() {
 
   if (!isLoggedIn) {
     if (telaPublica === 'aceitar') {
-      return <AceitarConvite onVoltar={() => setTelaPublica('login')} />
+      return (
+        <AceitarConvite
+          tokenInicial={tokenUrl}
+          onVoltar={() => {
+            limparQueryConvite()
+            setTelaPublica('login')
+          }}
+        />
+      )
     }
     return <Login onIrAceitar={() => setTelaPublica('aceitar')} />
   }
 
-  // Logado sem perfil (convite incompleto)
   if (!perfil) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6" style={{ backgroundColor: C.gray1 }}>
         <p className="text-center" style={{ color: C.gray80 }}>
           Sua conta ainda não tem perfil no sistema.<br />
-          Use a tela de Aceitar convite com o código recebido.
+          Use a tela de Aceitar convite com o link recebido.
         </p>
         <button
           className="font-semibold underline"
@@ -90,14 +113,16 @@ function AppInterno() {
   }
 
   const menus = menusPorPapel(perfil.papel)
+  const ehGestor = perfil.papel === 'admin' || perfil.papel === 'coordenadora'
 
   let conteudo = null
   if (perfil.papel === 'recepcionista') {
     conteudo = <Recepcionista pagina={pagina} />
   } else if (perfil.papel === 'setor') {
     conteudo = <Setor pagina={pagina} />
-  } else {
-    if (pagina === 'visitantes') conteudo = <VisitantesGestor />
+  } else if (ehGestor) {
+    if (pagina === 'registrar') conteudo = <Recepcionista pagina="home" />
+    else if (pagina === 'visitantes') conteudo = <VisitantesGestor />
     else if (pagina === 'agendamentos') conteudo = <AgendamentosGestor />
     else if (pagina === 'usuarios') conteudo = <Usuarios />
     else if (pagina === 'convites') conteudo = <EnviarConvites />
@@ -105,11 +130,7 @@ function AppInterno() {
   }
 
   return (
-    <Shell
-      menus={menus}
-      pagina={pagina}
-      onNav={setPagina}
-    >
+    <Shell menus={menus} pagina={pagina} onNav={setPagina}>
       {conteudo}
     </Shell>
   )

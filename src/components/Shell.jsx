@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react'
 import { useAuth } from '../lib/AuthContext'
 import { C, PAPEIS } from '../lib/theme'
-import { Logo, Creditos } from './ui'
+import { Creditos } from './ui'
 
 export default function Shell({ menus, pagina, onNav, children }) {
   const { perfil, logout } = useAuth()
@@ -10,12 +10,9 @@ export default function Shell({ menus, pagina, onNav, children }) {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.gray1 }}>
       <header className="bg-white border-b sticky top-0 z-30" style={{ borderColor: C.gray3 }}>
         <div className="px-4 sm:px-6 py-3 flex items-center gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            <Logo size={40} />
-            <div className="min-w-0">
-              <div className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: C.gray60 }}>SEMCAS</div>
-              <div className="text-sm font-bold truncate" style={{ color: C.blueDark }}>Controle de Atendimento</div>
-            </div>
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold tracking-wide uppercase" style={{ color: C.gray60 }}>SEMCAS</div>
+            <div className="text-sm font-bold truncate" style={{ color: C.blueDark }}>Controle de Atendimento</div>
           </div>
 
           <div className="flex-1" />

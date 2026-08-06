@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Send, Copy, RefreshCw } from 'lucide-react'
+import { Send, Copy, RefreshCw, Link2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C, PAPEIS, PAPEIS_CONVITE } from '../lib/theme'
 import { Btn, Field, Input, Select, Card, Alert, Empty } from '../components/ui'
+
+function linkConvite(token) {
+  const base = window.location.origin
+  return `${base}/?convite=${encodeURIComponent(token)}`
+}
 
 export default function EnviarConvites() {
   const { perfil } = useAuth()
@@ -12,7 +17,7 @@ export default function EnviarConvites() {
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
-  const [ultimoToken, setUltimoToken] = useState('')
+  const [ultimoLink, setUltimoLink] = useState('')
   const [salvando, setSalvando] = useState(false)
 
   async function carregar() {
@@ -21,7 +26,17 @@ export default function EnviarConvites() {
       .select('*')
       .order('criado_em', { ascending: false })
       .limit(50)
-    if (error) setErro(error.message)
+
+    if (error) {
+      if (/convites|schema cache/i.test(error.message || '')) {
+        setErro('Tabela de convites não existe ainda. No Supabase → SQL Editor, rode o arquivo supabase/criar-convites.sql e tente de novo.')
+      } else {
+        setErro(error.message)
+      }
+      setLista([])
+      return
+    }
+    setErro('')
     setLista(data || [])
   }
 
@@ -33,7 +48,7 @@ export default function EnviarConvites() {
     e.preventDefault()
     setErro('')
     setMsg('')
-    setUltimoToken('')
+    setUltimoLink('')
 
     if (!email.trim()) {
       setErro('Informe o e-mail.')
@@ -52,10 +67,16 @@ export default function EnviarConvites() {
         .select('token')
         .single()
 
-      if (error) throw error
+      if (error) {
+        if (/convites|schema cache/i.test(error.message || '')) {
+          throw new Error('Tabela de convites não existe. Rode supabase/criar-convites.sql no SQL Editor do Supabase.')
+        }
+        throw error
+      }
 
-      setUltimoToken(data.token)
-      setMsg('Convite criado. Copie o código e envie para a pessoa.')
+      const link = linkConvite(data.token)
+      setUltimoLink(link)
+      setMsg('Convite criado. Copie o link e envie para a pessoa.')
       setEmail('')
       await carregar()
     } catch (err) {
@@ -65,12 +86,12 @@ export default function EnviarConvites() {
     }
   }
 
-  async function copiar(texto) {
+  async function copiar(texto, label = 'Link') {
     try {
       await navigator.clipboard.writeText(texto)
-      setMsg('Código copiado.')
+      setMsg(`${label} copiado.`)
     } catch {
-      setMsg('Selecione e copie o código manualmente.')
+      setMsg('Selecione e copie manualmente.')
     }
   }
 
@@ -84,7 +105,7 @@ export default function EnviarConvites() {
       <div>
         <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>Enviar convites</h1>
         <p className="text-sm mt-1" style={{ color: C.gray60 }}>
-          Crie um convite e envie o código para a pessoa se cadastrar em “Aceitar convite”.
+          Gere um link e envie para a pessoa se cadastrar no sistema.
         </p>
       </div>
 
@@ -109,17 +130,17 @@ export default function EnviarConvites() {
             </Select>
           </Field>
           <Btn type="submit" icon={Send} disabled={salvando}>
-            {salvando ? 'Criando...' : 'Gerar convite'}
+            {salvando ? 'Gerando...' : 'Gerar link de convite'}
           </Btn>
         </form>
 
-        {ultimoToken && (
+        {ultimoLink && (
           <div className="mt-5 p-4 border" style={{ borderColor: C.blue, backgroundColor: C.blueBg }}>
-            <div className="text-xs font-semibold uppercase mb-2" style={{ color: C.blue }}>Código do convite</div>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm break-all font-mono" style={{ color: C.blueDark }}>{ultimoToken}</code>
-              <Btn type="button" size="sm" variant="secondary" icon={Copy} onClick={() => copiar(ultimoToken)}>
-                Copiar
+            <div className="text-xs font-semibold uppercase mb-2" style={{ color: C.blue }}>Link do convite</div>
+            <div className="flex items-start gap-2">
+              <code className="flex-1 text-sm break-all font-mono" style={{ color: C.blueDark }}>{ultimoLink}</code>
+              <Btn type="button" size="sm" variant="secondary" icon={Copy} onClick={() => copiar(ultimoLink)}>
+                Copiar link
               </Btn>
             </div>
           </div>
@@ -136,18 +157,27 @@ export default function EnviarConvites() {
         ) : (
           lista.map((c) => (
             <div key={c.id} className="px-5 py-3 border-t flex flex-col sm:flex-row sm:items-center gap-2 justify-between" style={{ borderColor: C.gray3 }}>
-              <div>
+              <div className="min-w-0">
                 <div className="font-semibold text-sm" style={{ color: C.blueDark }}>{c.email}</div>
                 <div className="text-xs" style={{ color: C.gray60 }}>
                   {PAPEIS[c.papel]} · {c.status}
-                  {c.status === 'pendente' && (
-                    <> · código: <button className="underline font-mono" onClick={() => copiar(c.token)}>{c.token.slice(0, 8)}...</button></>
-                  )}
                 </div>
               </div>
-              {c.status === 'pendente' && (
-                <Btn variant="ghost" size="sm" onClick={() => cancelar(c.id)}>Cancelar</Btn>
-              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {c.status === 'pendente' && (
+                  <>
+                    <Btn
+                      variant="secondary"
+                      size="sm"
+                      icon={Link2}
+                      onClick={() => copiar(linkConvite(c.token))}
+                    >
+                      Copiar link
+                    </Btn>
+                    <Btn variant="ghost" size="sm" onClick={() => cancelar(c.id)}>Cancelar</Btn>
+                  </>
+                )}
+              </div>
             </div>
           ))
         )}

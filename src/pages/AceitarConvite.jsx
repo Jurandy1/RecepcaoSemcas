@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C, PAPEIS } from '../lib/theme'
-import { Logo, Btn, Field, Input, Alert, Creditos } from '../components/ui'
+import { Btn, Field, Input, Alert, Creditos } from '../components/ui'
 
-export default function AceitarConvite({ onVoltar }) {
+export default function AceitarConvite({ onVoltar, tokenInicial = '' }) {
   const { refreshPerfil } = useAuth()
   const [form, setForm] = useState({
-    token: '',
+    token: tokenInicial || '',
     nome: '',
     email: '',
     senha: '',
@@ -25,10 +25,11 @@ export default function AceitarConvite({ onVoltar }) {
     setForm((f) => ({ ...f, [k]: v }))
   }
 
-  async function validarToken() {
+  async function validarToken(tokenOverride) {
+    const token = (tokenOverride ?? form.token).trim()
     setErro('')
     setConvite(null)
-    if (!form.token.trim()) {
+    if (!token) {
       setErro('Informe o código do convite.')
       return
     }
@@ -37,7 +38,7 @@ export default function AceitarConvite({ onVoltar }) {
       const { data, error } = await supabase
         .from('convites')
         .select('email, papel, status, expira_em')
-        .eq('token', form.token.trim())
+        .eq('token', token)
         .eq('status', 'pendente')
         .maybeSingle()
 
@@ -48,12 +49,18 @@ export default function AceitarConvite({ onVoltar }) {
       }
       setConvite(data)
       set('email', data.email)
+      if (tokenOverride) set('token', token)
     } catch (err) {
       setErro(err.message || 'Erro ao validar convite.')
     } finally {
       setValidando(false)
     }
   }
+
+  useEffect(() => {
+    if (tokenInicial) validarToken(tokenInicial)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokenInicial])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -132,12 +139,9 @@ export default function AceitarConvite({ onVoltar }) {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.gray1 }}>
       <header className="bg-white border-b" style={{ borderColor: C.gray3 }}>
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Logo size={44} />
-            <div>
-              <div className="text-sm font-bold" style={{ color: C.blueDark }}>Aceitar convite</div>
-              <div className="text-xs" style={{ color: C.gray60 }}>Cadastro de acesso ao sistema</div>
-            </div>
+          <div>
+            <div className="text-sm font-bold" style={{ color: C.blueDark }}>Aceitar convite</div>
+            <div className="text-xs" style={{ color: C.gray60 }}>SEMCAS · Cadastro de acesso</div>
           </div>
           <button onClick={onVoltar} className="text-sm font-semibold inline-flex items-center gap-1" style={{ color: C.blue }}>
             <ArrowLeft size={16} /> Voltar ao login
