@@ -13,6 +13,7 @@ function hojeISO() {
 
 export default function Setor({ pagina }) {
   const { perfil } = useAuth()
+  const setorFixo = (perfil?.setor || '').trim()
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
@@ -29,10 +30,14 @@ export default function Setor({ pagina }) {
   const { pagina: pag, totalPaginas, itens, irPara, reset } = usePaginacao(lista, 10)
 
   async function carregar() {
+    if (!setorFixo) {
+      setLista([])
+      return
+    }
     const { data, error } = await supabase
       .from('agendamentos')
       .select('*')
-      .eq('setor', perfil.setor)
+      .eq('setor', setorFixo)
       .gte('data', hojeISO())
       .order('data', { ascending: true })
       .order('hora', { ascending: true })
@@ -43,13 +48,18 @@ export default function Setor({ pagina }) {
   }
 
   useEffect(() => {
-    if (perfil?.setor) carregar()
-  }, [perfil?.setor])
+    carregar()
+  }, [setorFixo])
 
   async function salvar(e) {
     e.preventDefault()
     setErro('')
     setMsg('')
+
+    if (!setorFixo) {
+      setErro('Seu cadastro não tem setor definido. Peça um novo convite de Setor (agendamento) informando o nome do setor.')
+      return
+    }
 
     if (!form.nome_visitante.trim() || !form.data || !form.hora) {
       setErro('Preencha nome, data e hora.')
@@ -75,11 +85,11 @@ export default function Setor({ pagina }) {
         hora: form.hora,
         sala: form.sala.trim() || null,
         observacao: form.observacao.trim() || null,
-        setor: perfil.setor,
+        setor: setorFixo,
         criado_por: perfil.id,
       })
       if (error) throw error
-      setMsg('Agendamento enviado à recepção.')
+      setMsg(`Agendamento criado para o setor ${setorFixo}. A recepção será avisada.`)
       setForm({
         nome_visitante: '',
         cpf: '',
@@ -103,13 +113,24 @@ export default function Setor({ pagina }) {
     await carregar()
   }
 
+  if (!setorFixo) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <Alert type="error">
+          Seu usuário de Setor (agendamento) está sem o nome do setor.
+          Peça à administração um novo convite e, no cadastro, informe o setor obrigatoriamente.
+        </Alert>
+      </div>
+    )
+  }
+
   if (pagina === 'novo') {
     return (
       <div className="p-6 max-w-2xl mx-auto space-y-5">
         <div>
           <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>Novo agendamento</h1>
           <p className="text-sm mt-1" style={{ color: C.gray60 }}>
-            Setor: <strong>{perfil?.setor}</strong> — a recepção verá este aviso.
+            Este agendamento será sempre para o seu setor.
           </p>
         </div>
 
@@ -118,6 +139,9 @@ export default function Setor({ pagina }) {
 
         <Card className="p-6">
           <form onSubmit={salvar} className="space-y-4">
+            <Field label="Setor" hint="Definido no seu cadastro — não pode ser alterado">
+              <Input value={setorFixo} readOnly large style={{ backgroundColor: C.gray2, fontWeight: 600 }} />
+            </Field>
             <Field label="Nome do visitante" required>
               <Input
                 value={form.nome_visitante}
@@ -148,7 +172,7 @@ export default function Setor({ pagina }) {
               <Textarea rows={2} value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} placeholder="Opcional" />
             </Field>
             <Btn type="submit" full size="lg" icon={Plus} disabled={salvando}>
-              {salvando ? 'Salvando...' : 'Agendar visita'}
+              {salvando ? 'Salvando...' : `Agendar para ${setorFixo}`}
             </Btn>
           </form>
         </Card>
@@ -160,8 +184,8 @@ export default function Setor({ pagina }) {
     <div className="p-6 max-w-3xl mx-auto space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>{perfil?.setor || 'Meu setor'}</h1>
-          <p className="text-sm mt-1" style={{ color: C.gray60 }}>Próximos agendamentos</p>
+          <h1 className="text-xl font-bold" style={{ color: C.blueDark }}>{setorFixo}</h1>
+          <p className="text-sm mt-1" style={{ color: C.gray60 }}>Agendamentos do seu setor</p>
         </div>
         <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
       </div>

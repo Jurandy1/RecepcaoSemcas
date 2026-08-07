@@ -4,9 +4,11 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/AuthContext'
 import { C, PAPEIS } from '../lib/theme'
 import { Btn, Field, Input, Alert, Creditos } from '../components/ui'
+import { CampoSetorProcurado, useSetoresAtivos } from './SetoresProcurados'
 
 export default function AceitarConvite({ onVoltar, tokenInicial = '' }) {
   const { refreshPerfil } = useAuth()
+  const { setores } = useSetoresAtivos()
   const [form, setForm] = useState({
     token: tokenInicial || '',
     nome: '',
@@ -79,9 +81,15 @@ export default function AceitarConvite({ onVoltar, tokenInicial = '' }) {
       setErro('As senhas não coincidem.')
       return
     }
-    if (convite.papel === 'setor' && !form.setor.trim()) {
-      setErro('Informe o nome do seu setor.')
-      return
+    if (convite.papel === 'setor') {
+      if (!form.setor.trim()) {
+        setErro('Para acesso de Setor (agendamento), o nome do setor é obrigatório.')
+        return
+      }
+      if (form.setor.trim().length < 2) {
+        setErro('Informe o nome completo do setor.')
+        return
+      }
     }
 
     setLoading(true)
@@ -194,13 +202,16 @@ export default function AceitarConvite({ onVoltar, tokenInicial = '' }) {
           </Field>
 
           {convite?.papel === 'setor' && (
-            <Field label="Nome do setor" required hint="Ex.: Recursos Humanos, Gabinete, Financeiro...">
-              <Input
+            <Field
+              label="Nome do seu setor"
+              required
+              hint="Obrigatório. Todos os agendamentos que você criar ficarão vinculados a este setor."
+            >
+              <CampoSetorProcurado
                 value={form.setor}
-                onChange={(e) => set('setor', e.target.value)}
-                placeholder="Digite o nome do setor"
+                onChange={(v) => set('setor', v)}
+                setores={setores}
                 large
-                required
               />
             </Field>
           )}

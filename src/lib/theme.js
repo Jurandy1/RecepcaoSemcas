@@ -29,12 +29,12 @@ export const PAPEIS = {
   admin: 'Administrador',
   coordenadora: 'Coordenadora',
   recepcionista: 'Recepcionista',
-  setor: 'Setor'
+  setor: 'Setor (agendamento)',
 }
 
 export const PAPEIS_CONVITE = [
   { value: 'coordenadora', label: 'Coordenadora — acesso completo' },
   { value: 'admin', label: 'Administrador — acesso completo' },
   { value: 'recepcionista', label: 'Recepcionista — cadastro de visitantes' },
-  { value: 'setor', label: 'Setor — agendamentos' },
+  { value: 'setor', label: 'Setor (agendamento) — agenda visitas do próprio setor' },
 ]
