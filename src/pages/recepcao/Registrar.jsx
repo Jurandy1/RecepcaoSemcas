@@ -1,13 +1,30 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { UserPlus, RefreshCw, Calendar, Camera, X, Trash2 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
-import { C } from '../lib/theme'
-import { maskCpf, maskCpfExibicao, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf } from '../lib/br'
-import { salvarFotoVisitante } from '../lib/fotos'
-import { Btn, Field, Input, Textarea, Card, Alert, Empty, FotoAmpliavel } from '../components/ui'
-import Paginacao, { usePaginacao } from '../components/Paginacao'
-import { useSetoresAtivos, CampoSetorProcurado } from './SetoresProcurados'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  AlertTriangle,
+  BadgeCheck,
+  Camera,
+  CheckCircle2,
+  Info,
+  Landmark,
+  Search,
+  User,
+  UserPlus,
+  X,
+} from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../lib/AuthContext'
+import { maskCpf, maskTelefoneBr, cpfValido, telefoneBrValido, formatCpf } from '../../lib/br'
+import { salvarFotoVisitante } from '../../lib/fotos'
+import {
+  Alert,
+  BadgeOrigem,
+  Btn,
+  Field,
+  FotoAmpliavel,
+  Input,
+  Textarea,
+} from '../../components/ui'
+import { useSetoresAtivos, CampoSetorProcurado } from '../../components/setores'
 
 /** Se true, exige foto no registro (balcão SEMCAS). */
 const FOTO_OBRIGATORIA = false
@@ -19,25 +36,37 @@ function hojeISO() {
 function Sugestoes({ itens, onPick, visible }) {
   if (!visible || !itens.length) return null
   return (
-    <div
-      className="absolute left-0 right-0 z-20 mt-1 border shadow-md max-h-64 overflow-y-auto"
-      style={{ borderColor: C.gray3, backgroundColor: C.card }}
-    >
-      {itens.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          className="w-full text-left px-4 py-3 border-b"
-          style={{ borderColor: C.gray3, backgroundColor: C.card }}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onPick(item)}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.blueBg }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = C.card }}
-        >
-          <div className="font-semibold text-base" style={{ color: C.blueDark }}>{item.nome}</div>
-          <div className="text-sm" style={{ color: C.gray60 }}>{item.rotulo}</div>
-        </button>
-      ))}
+    <div className="absolute left-0 right-0 z-20 mt-1.5 rounded-lg border border-gray-3 bg-white shadow-e3 overflow-hidden max-h-72 overflow-y-auto">
+      {itens.map((item) => {
+        const servidor = item.tipo === 'servidor' || Boolean(item.servidor_id)
+        return (
+          <button
+            key={item.key}
+            type="button"
+            className="w-full text-left px-4 py-3 border-b border-gray-2 last:border-b-0 hover:bg-blue-10 focus:bg-blue-10"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onPick(item)}
+          >
+            <div className="flex items-center gap-2">
+              <BadgeOrigem servidor={servidor} className="flex-shrink-0">
+                {servidor ? (
+                  <>
+                    <Landmark size={12} />
+                    Servidor
+                  </>
+                ) : (
+                  <>
+                    <User size={12} />
+                    Já cadastrada
+                  </>
+                )}
+              </BadgeOrigem>
+              <div className="font-semibold text-base text-blue-dark truncate">{item.nome}</div>
+            </div>
+            <div className="text-sm text-gray-20 mt-1">{item.rotulo}</div>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -166,68 +195,65 @@ function CapturaFoto({ foto, onChange }) {
     pararCamera()
   }
 
+  const moldura = foto
+    ? 'border-success'
+    : aberto
+      ? 'border-blue'
+      : 'border-dashed border-gray-3'
+
   return (
     <div>
-      <label className="block font-semibold mb-1.5" style={{ color: C.gray80, fontSize: 15 }}>
-        Foto do visitante
-      </label>
+      <span className="field-label">Foto do visitante</span>
       <div
-        className="aspect-square border-2 flex flex-col items-center justify-center gap-2 relative overflow-hidden"
-        style={{
-          borderColor: foto ? C.green : aberto ? C.blue : C.gray5,
-          backgroundColor: aberto ? '#0A1628' : C.gray2,
-        }}
+        className={`aspect-square border-2 rounded-lg flex flex-col items-center justify-center gap-2 relative overflow-hidden ${moldura}`}
+        style={{ backgroundColor: aberto ? '#071D41' : '#F8F8F8' }}
       >
         {aberto ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-          />
+          <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
         ) : foto ? (
           <FotoAmpliavel
             src={foto}
             alt="Visitante"
-            className="w-full h-full absolute inset-0"
-            style={{ border: 'none' }}
+            className="w-full h-full absolute inset-0 border-0 rounded-none"
           />
         ) : (
           <>
-            <Camera size={36} style={{ color: C.gray20 }} />
-            <span className="text-xs text-center px-3 font-medium" style={{ color: C.gray60 }}>
-              Nenhuma foto
+            <Camera size={40} className="text-gray-5" />
+            <span className="text-sm text-center px-3 font-semibold text-gray-60">Nenhuma foto</span>
+            <span className="text-xs text-center px-3 text-gray-20">
+              Clique em abrir para capturar
             </span>
           </>
         )}
         {foto && !aberto && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onChange(null) }}
-            className="absolute top-2 right-2 p-1.5 border shadow-sm z-10"
-            style={{ color: C.red, borderColor: C.gray3, backgroundColor: C.white }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onChange(null)
+            }}
+            className="absolute top-2 right-2 p-1.5 rounded border border-gray-3 bg-white text-danger shadow-e1 z-10"
+            aria-label="Remover foto"
           >
             <X size={14} />
           </button>
         )}
       </div>
-      {erroCam && (
-        <p className="text-xs mt-2 font-medium leading-relaxed" style={{ color: C.red }}>
-          {erroCam}
-        </p>
-      )}
+
       <div className="mt-3 flex flex-col gap-2">
         {aberto ? (
           <>
-            <Btn type="button" full size="sm" icon={Camera} onClick={tirarFoto}>Capturar foto</Btn>
-            <Btn type="button" full size="sm" variant="ghost" onClick={pararCamera}>Cancelar câmera</Btn>
+            <Btn full size="md" icon={Camera} onClick={tirarFoto}>
+              Capturar foto
+            </Btn>
+            <Btn full size="sm" variant="ghost" onClick={pararCamera}>
+              Cancelar câmera
+            </Btn>
           </>
         ) : (
           <Btn
-            type="button"
             full
-            size="sm"
+            size="md"
             variant="secondary"
             icon={Camera}
             onClick={abrirCamera}
@@ -237,6 +263,12 @@ function CapturaFoto({ foto, onChange }) {
           </Btn>
         )}
       </div>
+
+      {erroCam ? (
+        <p className="field-hint text-danger-dark font-medium">{erroCam}</p>
+      ) : (
+        <p className="field-hint">Funciona em HTTPS ou localhost.</p>
+      )}
     </div>
   )
 }
@@ -688,42 +720,74 @@ export function FormRegistrar({ onRegistrado }) {
     }
   }
 
+  function limparFormulario() {
+    setForm({ nome: '', cpf: '', telefone: '', setor: '', observacao: '' })
+    setFoto(null)
+    setServidorId(null)
+    setOrgao('')
+    setServidorSemCpf(false)
+    setAviso('')
+    setErro('')
+    setMsgOk('')
+    setSugestoes([])
+    setMostrarSug(false)
+    requestAnimationFrame(() => nomeRef.current?.focus())
+  }
+
+  const iconeAviso = avisoTipo === 'warn' ? AlertTriangle : servidorId ? BadgeCheck : Info
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-5">
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Registrar visitante</h1>
-        <p className="text-base mt-1" style={{ color: C.gray60 }}>
-          Digite o nome ou CPF — o sistema identifica se é servidor municipal ou visitante externo.
-          {!window.isSecureContext && (
-            <span style={{ color: C.orange }}> · Webcam: use localhost ou HTTPS.</span>
-          )}
+        <h1 className="page-title text-2xl sm:text-3xl">Registrar visitante</h1>
+        <p className="page-sub text-base text-gray-20 mt-1.5">
+          Digite o nome ou CPF. O sistema identifica se é servidor municipal ou visitante externo.
         </p>
       </div>
 
-      {erro && <Alert type="error">{erro}</Alert>}
-      {msgOk && <Alert type="success">{msgOk}</Alert>}
-      {aviso && <Alert type={avisoTipo}>{aviso}</Alert>}
+      {erro && (
+        <Alert type="error" icon={AlertTriangle}>
+          {erro}
+        </Alert>
+      )}
+      {msgOk && (
+        <Alert type="success" icon={CheckCircle2}>
+          {msgOk}
+        </Alert>
+      )}
+      {aviso && (
+        <Alert type={avisoTipo} icon={iconeAviso}>
+          {aviso}
+        </Alert>
+      )}
       {servidorSemCpf && (
-        <Alert type="warn">Servidor sem CPF no cadastro — digite o CPF para vincular.</Alert>
+        <Alert type="warn" icon={AlertTriangle}>
+          Servidor sem CPF no cadastro — digite o CPF para vincular.
+        </Alert>
       )}
 
-      <Card className="p-6 sm:p-8">
-        <form onSubmit={registrar} className="space-y-5" autoComplete="off">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="card shadow-e2">
+        <form onSubmit={registrar} className="p-5 sm:p-8" autoComplete="off">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,240px)_1fr] gap-6 sm:gap-8">
             <CapturaFoto foto={foto} onChange={setFoto} />
 
-            <div className="md:col-span-2 space-y-5">
+            <div className="space-y-5">
               <Field label="Nome completo" required>
                 <div className="relative">
+                  <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-5" />
                   <Input
                     ref={nomeRef}
                     large
                     value={form.nome}
                     onChange={onNomeChange}
-                    onFocus={() => { setCampoSug('nome'); setMostrarSug(sugestoes.length > 0) }}
+                    onFocus={() => {
+                      setCampoSug('nome')
+                      setMostrarSug(sugestoes.length > 0)
+                    }}
                     onBlur={() => setTimeout(() => setMostrarSug(false), 150)}
-                    placeholder="Digite o nome"
+                    placeholder="Digite o nome completo"
                     autoFocus
+                    style={{ paddingLeft: 44 }}
                   />
                   {campoSug === 'nome' && (
                     <Sugestoes itens={sugestoes} visible={mostrarSug} onPick={aplicarSugestao} />
@@ -737,6 +801,7 @@ export function FormRegistrar({ onRegistrado }) {
                     <Input
                       ref={cpfRef}
                       large
+                      className="font-mono"
                       value={form.cpf}
                       onChange={onCpfChange}
                       onFocus={() => setCampoSug('cpf')}
@@ -750,6 +815,7 @@ export function FormRegistrar({ onRegistrado }) {
                 <Field label="Telefone">
                   <Input
                     large
+                    className="font-mono"
                     value={form.telefone}
                     onChange={(e) => setCampo('telefone', maskTelefoneBr(e.target.value))}
                     placeholder="(98) 9xxxx-xxxx"
@@ -758,12 +824,15 @@ export function FormRegistrar({ onRegistrado }) {
               </div>
 
               {servidorId && (
-                <Field label="Órgão (servidor municipal)">
-                  <Input large value={orgao} readOnly style={{ backgroundColor: C.blueBg, fontWeight: 600 }} />
+                <Field
+                  label="Órgão de origem"
+                  hint="Preenchido automaticamente para servidores municipais."
+                >
+                  <Input large className="font-semibold" value={orgao} readOnly />
                 </Field>
               )}
 
-              <Field label="Setor procurado" required hint="Escolha da lista ou use Outro para digitar">
+              <Field label="Setor procurado" required hint="Escolha da lista ou use Outro para digitar.">
                 <CampoSetorProcurado
                   large
                   value={form.setor}
@@ -773,13 +842,13 @@ export function FormRegistrar({ onRegistrado }) {
                 />
               </Field>
 
-              <Field label="Observação" hint='Ex.: Liberado pela chefe de gabinete'>
+              <Field label="Observação">
                 <Textarea
                   large
                   rows={2}
                   value={form.observacao}
                   onChange={(e) => setCampo('observacao', e.target.value)}
-                  placeholder="Opcional"
+                  placeholder="Ex.: Liberado pela chefe de gabinete"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
@@ -791,345 +860,17 @@ export function FormRegistrar({ onRegistrado }) {
             </div>
           </div>
 
-          <Btn type="submit" full size="xl" icon={UserPlus} disabled={salvando}>
-            {salvando ? 'Salvando...' : 'REGISTRAR VISITANTE'}
-          </Btn>
-        </form>
-      </Card>
-    </div>
-  )
-}
-
-export function ListaVisitantesHoje() {
-  const { ehGestor } = useAuth()
-  const [lista, setLista] = useState([])
-  const [erro, setErro] = useState('')
-  const [msg, setMsg] = useState('')
-  const [busca, setBusca] = useState('')
-  const [filtro, setFiltro] = useState('todos') // todos | servidores | externos | agendados
-
-  const filtrada = useMemo(() => {
-    let base = lista
-    if (filtro === 'servidores') base = base.filter((v) => v.servidor_id)
-    else if (filtro === 'externos') base = base.filter((v) => !v.servidor_id)
-    else if (filtro === 'agendados') base = base.filter((v) => v.tipo === 'agendada')
-
-    if (!busca.trim()) return base
-    const q = busca.trim().toLowerCase()
-    return base.filter((v) =>
-      `${v.nome} ${v.cpf} ${v.setor} ${v.telefone || ''} ${v.observacao || ''} ${v.servidores?.lotacao || ''}`.toLowerCase().includes(q)
-    )
-  }, [lista, busca, filtro])
-
-  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(filtrada, 8)
-
-  async function carregar() {
-    const inicio = `${hojeISO()}T00:00:00`
-    const fim = `${hojeISO()}T23:59:59`
-    const { data, error } = await supabase
-      .from('visitantes')
-      .select('*, servidores(lotacao, matricula)')
-      .gte('horario', inicio)
-      .lte('horario', fim)
-      .order('horario', { ascending: false })
-    if (error) {
-      const r2 = await supabase
-        .from('visitantes')
-        .select('*')
-        .gte('horario', inicio)
-        .lte('horario', fim)
-        .order('horario', { ascending: false })
-      if (r2.error) setErro(r2.error.message)
-      setLista(r2.data || [])
-    } else {
-      setLista(data || [])
-    }
-    reset()
-  }
-
-  useEffect(() => { carregar() }, [])
-
-  useEffect(() => {
-    const id = setInterval(() => { carregar() }, 30000)
-    return () => clearInterval(id)
-  }, [])
-
-  async function excluir(v) {
-    if (!ehGestor) return
-    if (!confirm(`Excluir a visita de ${v.nome}?`)) return
-    setErro('')
-    setMsg('')
-    const { error } = await supabase.from('visitantes').delete().eq('id', v.id)
-    if (error) {
-      setErro(error.message.includes('policy') || error.code === '42501'
-        ? 'Somente administrador ou coordenadora podem excluir visitas. Rode supabase/politica-excluir-visitas.sql se ainda não rodou.'
-        : error.message)
-      return
-    }
-    setMsg('Visita excluída.')
-    await carregar()
-  }
-
-  const chips = [
-    { id: 'todos', label: 'Todos' },
-    { id: 'servidores', label: 'Servidores' },
-    { id: 'externos', label: 'Externos' },
-    { id: 'agendados', label: 'Agendados' },
-  ]
-
-  return (
-    <div className="p-6 max-w-5xl mx-auto space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Servidores / Visitantes</h1>
-          <p className="text-base mt-1" style={{ color: C.gray60 }}>
-            Registros de hoje · {new Date().toLocaleDateString('pt-BR')} · {filtrada.length}
-            <span className="text-xs ml-2" style={{ color: C.gray20 }}>atualiza a cada 30s</span>
-          </p>
-        </div>
-        <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
-      </div>
-
-      {erro && <Alert type="error">{erro}</Alert>}
-      {msg && <Alert type="success">{msg}</Alert>}
-
-      <div className="flex flex-wrap gap-2">
-        {chips.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            onClick={() => { setFiltro(c.id); irPara(1) }}
-            className="px-3 py-2 text-sm font-semibold border"
-            style={{
-              backgroundColor: filtro === c.id ? C.blue : C.white,
-              color: filtro === c.id ? C.white : C.blueDark,
-              borderColor: filtro === c.id ? C.blue : C.gray3,
-            }}
-          >
-            {c.label}
-          </button>
-        ))}
-      </div>
-
-      <Input
-        large
-        value={busca}
-        onChange={(e) => { setBusca(e.target.value); irPara(1) }}
-        placeholder="Buscar por nome, CPF, telefone, setor ou órgão..."
-      />
-
-      <Card>
-        {itens.length === 0 ? (
-          <Empty>Nenhum registro hoje.</Empty>
-        ) : (
-          <div>
-            {itens.map((v) => (
-              <div key={v.id} className="px-5 py-4 border-t flex flex-col sm:flex-row sm:items-center gap-3 justify-between" style={{ borderColor: C.gray3 }}>
-                <div className="flex items-start gap-3 min-w-0">
-                  {v.foto_url ? (
-                    <FotoAmpliavel
-                      src={v.foto_url}
-                      alt={v.nome}
-                      className="w-12 h-12"
-                      size={48}
-                    />
-                  ) : (
-                    <div className="w-12 h-12 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white" style={{ backgroundColor: C.blue }}>
-                      {v.nome.split(' ').map((n) => n[0]).slice(0, 2).join('')}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="text-lg font-semibold" style={{ color: C.blueDark }}>{v.nome}</div>
-                    <div className="text-sm" style={{ color: C.gray60 }}>
-                      {v.setor} · CPF {maskCpfExibicao(v.cpf)}
-                      {v.telefone ? ` · ${v.telefone}` : ''}
-                      {v.tipo === 'agendada' ? ' · Agendada' : ''}
-                    </div>
-                    {v.servidor_id ? (
-                      <div className="text-sm mt-1 font-semibold" style={{ color: C.blue }}>
-                        Servidor municipal · Órgão {v.servidores?.lotacao || '—'}
-                      </div>
-                    ) : (
-                      <div className="text-sm mt-1" style={{ color: C.gray20 }}>Visitante externo</div>
-                    )}
-                    {v.observacao && (
-                      <div className="text-sm mt-1" style={{ color: C.blueDark }}>Obs.: {v.observacao}</div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="text-base font-mono" style={{ color: C.gray80 }}>
-                    {new Date(v.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                  {ehGestor && (
-                    <Btn variant="danger" size="sm" icon={Trash2} onClick={() => excluir(v)}>
-                      Excluir
-                    </Btn>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="mt-8 pt-6 border-t border-gray-2 flex flex-col sm:flex-row gap-3">
+            <Btn variant="outline" size="lg" onClick={limparFormulario} className="sm:flex-1">
+              Limpar formulário
+            </Btn>
+            <button type="submit" className="btn btn-primary btn-xl sm:flex-[2]" disabled={salvando}>
+              <UserPlus size={24} />
+              {salvando ? 'Salvando...' : 'Registrar visitante'}
+            </button>
           </div>
-        )}
-        <Paginacao
-          pagina={pagina}
-          totalPaginas={totalPaginas}
-          totalItens={filtrada.length}
-          onChange={irPara}
-        />
-      </Card>
-    </div>
-  )
-}
-
-export function AgendaDia() {
-  const { perfil } = useAuth()
-  const [agendamentos, setAgendamentos] = useState([])
-  const [erro, setErro] = useState('')
-  const [msg, setMsg] = useState('')
-  const [chegandoId, setChegandoId] = useState(null)
-  const { pagina, totalPaginas, itens, irPara, reset } = usePaginacao(agendamentos, 10)
-
-  async function carregar() {
-    const { data, error } = await supabase
-      .from('agendamentos')
-      .select('*')
-      .eq('data', hojeISO())
-      .neq('status', 'cancelado')
-      .order('hora', { ascending: true })
-    if (error) setErro(error.message)
-    setAgendamentos(data || [])
-    reset()
-  }
-
-  useEffect(() => { carregar() }, [])
-
-  async function marcarChegou(ag) {
-    if (chegandoId) return
-    setErro('')
-    setChegandoId(ag.id)
-    try {
-      await supabase.from('agendamentos').update({ status: 'chegou' }).eq('id', ag.id)
-      const cpf = ag.cpf && cpfValido(ag.cpf) ? formatCpf(ag.cpf) : (ag.cpf || '000.000.000-00')
-
-      let fotoAnterior = null
-      if (ag.cpf && cpfValido(ag.cpf)) {
-        const { data: ant } = await supabase
-          .from('visitantes')
-          .select('foto_url')
-          .eq('cpf', formatCpf(ag.cpf))
-          .not('foto_url', 'is', null)
-          .order('horario', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        fotoAnterior = ant?.foto_url || null
-      }
-
-      const { error } = await supabase.from('visitantes').insert({
-        nome: ag.nome_visitante,
-        cpf,
-        telefone: ag.telefone,
-        setor: ag.setor,
-        tipo: 'agendada',
-        agendamento_id: ag.id,
-        registrado_por: perfil?.id,
-        observacao: ag.observacao || null,
-        foto_url: fotoAnterior,
-      })
-      if (error) throw error
-      setMsg(`${ag.nome_visitante} registrado(a) na chegada.`)
-      await carregar()
-    } catch (err) {
-      const m = (err.message || '').toLowerCase()
-      if (m.includes('jwt') || m.includes('session') || m.includes('not authenticated')) {
-        setErro('Sessão expirada. Faça login de novo.')
-      } else {
-        setErro(err.message || 'Erro ao registrar chegada.')
-      }
-    } finally {
-      setChegandoId(null)
-    }
-  }
-
-  const pendentes = agendamentos.filter((a) => a.status === 'agendado').length
-  const chegaram = agendamentos.filter((a) => a.status === 'chegou').length
-
-  return (
-    <div className="p-6 max-w-4xl mx-auto space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold" style={{ color: C.blueDark }}>Agenda do dia</h1>
-          <p className="text-base mt-1" style={{ color: C.gray60 }}>
-            Visitas agendadas — {new Date().toLocaleDateString('pt-BR')}
-            {' · '}
-            <span style={{ color: C.orange }}>{pendentes} aguardando</span>
-            {' · '}
-            <span style={{ color: C.green }}>{chegaram} chegaram</span>
-          </p>
-        </div>
-        <Btn variant="secondary" icon={RefreshCw} onClick={carregar}>Atualizar</Btn>
+        </form>
       </div>
-
-      {erro && <Alert type="error">{erro}</Alert>}
-      {msg && <Alert type="success">{msg}</Alert>}
-
-      <Card>
-        {itens.length === 0 ? (
-          <Empty>Nenhum agendamento para hoje.</Empty>
-        ) : (
-          itens.map((a) => (
-            <div
-              key={a.id}
-              className="px-5 py-5 border-b flex flex-col sm:flex-row sm:items-center gap-4"
-              style={{
-                borderColor: C.gray3,
-                backgroundColor: a.status === 'chegou' ? C.greenBg : a.status === 'agendado' ? C.orangeBg : C.card,
-              }}
-            >
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-xl font-bold" style={{ color: C.blueDark }}>{a.nome_visitante}</div>
-                  {a.status === 'agendado' && (
-                    <span className="text-xs font-bold px-2 py-1" style={{ backgroundColor: C.orange, color: C.white }}>
-                      AGUARDANDO
-                    </span>
-                  )}
-                  {a.status === 'chegou' && (
-                    <span className="text-xs font-bold px-2 py-1" style={{ backgroundColor: C.green, color: C.white }}>
-                      CHEGOU
-                    </span>
-                  )}
-                </div>
-                <div className="text-base mt-1" style={{ color: C.gray60 }}>
-                  {String(a.hora).slice(0, 5)} · Setor: <strong>{a.setor}</strong>
-                  {a.sala ? ` · Sala ${a.sala}` : ''}
-                </div>
-              </div>
-              {a.status === 'chegou' ? (
-                <span className="text-base font-semibold px-3 py-2" style={{ backgroundColor: C.white, color: C.green }}>
-                  Já chegou
-                </span>
-              ) : (
-                <Btn
-                  size="lg"
-                  icon={UserPlus}
-                  onClick={() => marcarChegou(a)}
-                  disabled={chegandoId === a.id}
-                >
-                  {chegandoId === a.id ? 'Registrando...' : 'Chegou — registrar'}
-                </Btn>
-              )}
-            </div>
-          ))
-        )}
-        <Paginacao pagina={pagina} totalPaginas={totalPaginas} totalItens={agendamentos.length} onChange={irPara} />
-      </Card>
     </div>
   )
-}
-
-export default function Recepcionista({ pagina, onRegistrado }) {
-  if (pagina === 'agenda') return <AgendaDia />
-  if (pagina === 'visitantes') return <ListaVisitantesHoje />
-  return <FormRegistrar onRegistrado={onRegistrado} />
 }

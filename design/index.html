@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SEMCAS · Controle de Recepção — todas as telas (mockup para redesign)</title>
+
+<!--
+  ============================================================
+  BRIEFING PARA A IA DE DESIGN
+  ============================================================
+  Este arquivo é um MOCKUP ESTÁTICO com TODAS as telas do sistema
+  SEMCAS · Controle de Recepção (Vite + React + Tailwind + Supabase).
+  Ele existe só para redesign visual. Não tem backend.
+
+  O QUE PODE MUDAR (livre):
+    - Paleta, tipografia, espaçamento, cantos, sombras, ícones
+    - Hierarquia visual, densidade, componentes (cards, tabelas, chips)
+    - Organização e agrupamento dos menus da sidebar
+    - Responsividade (hoje a sidebar não colapsa no celular — pode criar drawer)
+
+  O QUE NÃO PODE MUDAR (regras de negócio):
+    - Os 4 papéis: admin, coordenadora, recepcionista, setor
+    - Quais telas cada papel vê (ver seção ESTRUTURA no fim do arquivo)
+    - Os campos de cada formulário e quais são obrigatórios (*)
+    - Os textos de aviso/erro (podem ser reescritos, mas o sentido tem que ficar)
+    - "Setor (agendamento)": o setor é definido no cadastro e fica travado
+    - Crédito "Desenvolvido por Jurandy Santana"
+
+  CONTEXTO DE USO:
+    - Balcão de recepção de secretaria municipal, PC compartilhado
+    - Recepcionista usa o dia todo, digitando rápido: campos grandes ajudam
+    - Também é usado em celular/tablet por gestores
+    - Público: servidores municipais e visitantes externos
+
+  COMO NAVEGAR:
+    - A barra escura no topo é só do mockup (data-mockup-only). Remova no design final.
+  ============================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  // Tokens reais do sistema (src/lib/theme.js)
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          blueDark: '#0A2F5C',
+          blue: '#1565C0',
+          blueLight: '#1E88E5',
+          blueBg: '#D6E6F7',
+          green: '#1B5E20',
+          greenBg: '#C8E6C9',
+          orange: '#E65100',
+          orangeBg: '#FFE0B2',
+          red: '#B71C1C',
+          redBg: '#FFCDD2',
+          gray1: '#E4E9F0',
+          gray2: '#D5DCE6',
+          gray3: '#B8C2D0',
+          gray5: '#8A96A8',
+          gray20: '#5C6B7E',
+          gray60: '#3D4A5C',
+          gray80: '#121A26',
+          sidebar: '#0B3A6E',
+          sidebarHover: '#0E4A8A',
+          sidebarActive: '#1565C0',
+          header: '#F0F4F9',
+          inputBg: '#F7F9FC',
+        },
+        fontFamily: {
+          sans: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+        },
+      },
+    },
+  }
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<style>
+  body { background: #E4E9F0; color: #121A26; font-family: "Source Sans 3", system-ui, sans-serif; }
+  input, select, textarea { background-color: #F7F9FC; color: #121A26; }
+  input::placeholder, textarea::placeholder { color: #5C6B7E; opacity: 1; }
+
+  /* Componentes atuais: cantos retos, borda 1.5px nos botões, alerta com barra à esquerda */
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; font-weight: 600; }
+  .btn-primary   { background: #1565C0; color: #fff;     border: 1.5px solid #1565C0; }
+  .btn-secondary { background: #fff;    color: #0A2F5C;  border: 1.5px solid #1565C0; }
+  .btn-ghost     { background: transparent; color: #0A2F5C; border: 1.5px solid #B8C2D0; }
+  .btn-danger    { background: #B71C1C; color: #fff;     border: 1.5px solid #B71C1C; }
+  .btn-sm { padding: .5rem .75rem;  font-size: .875rem; }
+  .btn-md { padding: .625rem 1rem;  font-size: .875rem; }
+  .btn-lg { padding: 1rem 1.5rem;   font-size: 1.125rem; }
+  .btn-xl { padding: 1.25rem 2rem;  font-size: 1.25rem; }
+
+  .field-label { display: block; font-weight: 600; color: #121A26; font-size: 15px; margin-bottom: .375rem; }
+  .field-hint  { font-size: .75rem; color: #5C6B7E; margin-top: .25rem; }
+  .inp   { width: 100%; border: 1px solid #8A96A8; background: #F7F9FC; padding: .625rem .75rem; font-size: .875rem; }
+  .inp-l { width: 100%; border: 1px solid #8A96A8; background: #F7F9FC; padding: 1rem; font-size: 1.125rem; }
+  .card  { background: #fff; border: 1px solid #B8C2D0; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .alert { padding: .75rem; font-size: .875rem; font-weight: 500; border-left: 4px solid; }
+  .alert-info    { background: #D6E6F7; color: #0A2F5C; border-left-color: #1565C0; }
+  .alert-success { background: #C8E6C9; color: #1B5E20; border-left-color: #1B5E20; }
+  .alert-warn    { background: #FFE0B2; color: #E65100; border-left-color: #E65100; }
+  .alert-error   { background: #FFCDD2; color: #B71C1C; border-left-color: #B71C1C; }
+  .th { text-align: left; padding: .75rem; font-weight: 600; font-size: .75rem; text-transform: uppercase; color: #3D4A5C; }
+  .td { padding: .5rem .75rem; font-size: .875rem; }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+
+<body class="font-sans">
+
+<!-- ══════════════════════════════════════════════════════════
+     BARRA DO MOCKUP — não faz parte do produto, remover no design
+     ══════════════════════════════════════════════════════════ -->
+<div data-mockup-only class="sticky top-0 z-50 bg-gray80 text-white px-4 py-2.5 flex flex-wrap items-center gap-3 text-sm">
+  <strong class="tracking-wide">MOCKUP</strong>
+  <span class="text-white/60 hidden sm:inline">Selecione a tela:</span>
+  <select id="screenPicker" class="text-gray80 px-2 py-1 text-sm font-semibold"></select>
+  <span id="roleTag" class="px-2 py-1 text-xs font-bold bg-white/15"></span>
+  <a href="#estrutura" class="ml-auto underline text-white/80 hover:text-white">Estrutura e regras ↓</a>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     TELA PÚBLICA 1 — LOGIN
+     Papel: nenhum (deslogado)
+     ══════════════════════════════════════════════════════════ -->
+<section data-screen="login" data-role="Público" hidden>
+  <div class="min-h-screen flex flex-col relative bg-sidebar">
+    <!-- No app real há uma foto de fundo (/login-bg.png) com overlay azul 72% -->
+    <div class="absolute inset-0" style="background-color: rgba(11,58,110,.72)"></div>
+
+    <div class="relative z-10 flex flex-col min-h-screen">
+      <header class="border-b" style="border-color: rgba(255,255,255,.15); background: rgba(255,255,255,.08)">
+        <div class="max-w-5xl mx-auto px-6 py-4">
+          <div class="text-xs font-semibold tracking-wide uppercase text-white/75">
+            Secretaria Municipal da Criança e Assistência Social
+          </div>
+          <div class="text-lg font-bold text-white">SEMCAS · Controle de Recepção</div>
+        </div>
+      </header>
+
+      <main class="flex-1 flex items-center justify-center px-6 py-12">
+        <div class="w-full max-w-md">
+          <div class="mb-6 text-white">
+            <h1 class="text-2xl font-bold mb-1">Entrar no sistema</h1>
+            <p class="text-sm text-white/85">Use seu e-mail e senha.</p>
+          </div>
+
+          <form class="border border-gray3 p-8 space-y-5 shadow-lg" style="background: rgba(255,255,255,.97)">
+            <div>
+              <label class="field-label">E-mail <span class="text-red">*</span></label>
+              <input class="inp-l" type="email" placeholder="semcas@gmail.com" />
+            </div>
+            <div>
+              <label class="field-label">Senha <span class="text-red">*</span></label>
+              <div class="relative">
+                <input class="inp-l" type="password" placeholder="Digite sua senha" style="padding-right:48px" />
+                <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray20">
+                  <i data-lucide="eye" class="w-5 h-5"></i>
+                </button>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-lg w-full">
+              Entrar <i data-lucide="chevron-right" class="w-[18px] h-[18px]"></i>
+            </button>
+          </form>
+
+          <div class="mt-4 text-center">
+            <button class="text-sm font-semibold underline text-white">Recebi um convite — quero me cadastrar</button>
+          </div>
+        </div>
+      </main>
+
+      <footer class="py-5 px-6" style="background: rgba(0,0,0,.25)">
+        <div class="max-w-5xl mx-auto flex justify-between text-xs text-white/85">
+          <span>Desenvolvido por <strong class="text-white">Jurandy Santana</strong></span>
+          <span>SEMCAS · Controle de Recepção</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     TELA PÚBLICA 2 — ACEITAR CONVITE
+     O campo "Nome do seu setor" só aparece quando o convite é
+     do papel "setor". Nesse caso é OBRIGATÓRIO e trava todos
+     os agendamentos futuros daquele usuário naquele setor.
+     ══════════════════════════════════════════════════════════ -->
+<section data-screen="convite" data-role="Público" hidden>
+  <div class="min-h-screen flex flex-col bg-gray1">
+    <header class="border-b border-gray3 bg-header">
+      <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div>
+          <div class="text-sm font-bold text-blueDark">Aceitar convite</div>
+          <div class="text-xs text-gray60">SEMCAS · Cadastro de acesso</div>
+        </div>
+        <button class="text-sm font-semibold inline-flex items-center gap-1 text-blue">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar ao login
+        </button>
+      </div>
+    </header>
+
+    <main class="flex-1 flex items-start justify-center px-6 py-10">
+      <form class="w-full max-w-lg card p-8 space-y-5">
+        <div>
+          <label class="field-label">Código do convite <span class="text-red">*</span></label>
+          <div class="flex gap-2">
+            <input class="inp-l" placeholder="Cole o código aqui" />
+            <button type="button" class="btn btn-secondary btn-lg">Validar</button>
+          </div>
+          <p class="field-hint">Código enviado pelo administrador</p>
+        </div>
+
+        <div class="alert alert-info">
+          Convite para <strong>Setor (agendamento)</strong> · e-mail: <strong>agendamento.gabinete@exemplo.com</strong>
+        </div>
+
+        <div>
+          <label class="field-label">Seu nome completo <span class="text-red">*</span></label>
+          <input class="inp-l" value="Maria Souza Lima" />
+        </div>
+
+        <div>
+          <label class="field-label">E-mail <span class="text-red">*</span></label>
+          <input class="inp-l" type="email" value="agendamento.gabinete@exemplo.com" readonly />
+          <p class="field-hint">Deve ser o mesmo e-mail do convite</p>
+        </div>
+
+        <!-- Só para papel "setor" -->
+        <div>
+          <label class="field-label">Nome do seu setor <span class="text-red">*</span></label>
+          <select class="inp-l">
+            <option>Selecione o setor...</option>
+            <option selected>Gabinete</option>
+            <option>Recursos Humanos</option>
+            <option>Outro (digitar)</option>
+          </select>
+          <p class="field-hint">Obrigatório. Todos os agendamentos que você criar ficarão vinculados a este setor.</p>
+        </div>
+
+        <div>
+          <label class="field-label">Criar senha <span class="text-red">*</span></label>
+          <input class="inp-l" type="password" placeholder="Mínimo 6 caracteres" />
+        </div>
+        <div>
+          <label class="field-label">Confirmar senha <span class="text-red">*</span></label>
+          <input class="inp-l" type="password" />
+        </div>
+
+        <button type="button" class="btn btn-primary btn-lg w-full">
+          <i data-lucide="check-circle-2" class="w-[22px] h-[22px]"></i> Concluir cadastro
+        </button>
+      </form>
+    </main>
+
+    <footer class="border-t border-gray3 py-4 px-6 text-center text-xs text-gray60">
+      Desenvolvido por <strong class="text-blueDark">Jurandy Santana</strong>
+    </footer>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     APP SHELL — header fixo + sidebar navy + main
+     Problema conhecido: a sidebar nunca colapsa; no celular ela
+     come ~210px da largura. Sinta-se livre para criar um drawer.
+     ══════════════════════════════════════════════════════════ -->
+<section data-screen="__shell__" id="appShell" hidden>
+  <div class="min-h-screen flex flex-col bg-gray1">
+    <header class="border-b border-gray3 bg-header sticky top-0 z-30">
+      <div class="px-4 sm:px-6 py-3 flex items-center gap-4">
+        <div class="min-w-0">
+          <div class="text-[10px] font-semibold tracking-wide uppercase text-gray20">SEMCAS</div>
+          <div class="text-sm font-bold text-blueDark truncate">Controle de Recepção</div>
+        </div>
+        <div class="flex-1"></div>
+        <div class="flex items-center gap-3 pl-4 border-l border-gray3">
+          <div id="shellAvatar" class="w-9 h-9 flex items-center justify-center font-bold text-white text-sm bg-blue">JS</div>
+          <div class="hidden sm:block text-right">
+            <div id="shellNome" class="text-sm font-semibold text-blueDark">Jurandy Santana</div>
+            <div id="shellPapel" class="text-xs text-gray60">Administrador</div>
+          </div>
+          <button class="p-2 text-gray60 hover:bg-black/5" title="Sair">
+            <i data-lucide="log-out" class="w-[18px] h-[18px]"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="flex-1 flex min-h-0">
+      <aside class="w-52 sm:w-56 flex-shrink-0 flex flex-col bg-sidebar">
+        <nav id="shellNav" class="flex-1 py-3"></nav>
+        <div class="border-t p-4 text-[10px]" style="border-color: rgba(255,255,255,.15); color: rgba(255,255,255,.55)">
+          Desenvolvido por <strong class="text-white">Jurandy Santana</strong>
+        </div>
+      </aside>
+
+      <main id="shellMain" class="flex-1 overflow-y-auto">
+
+        <!-- ────────────────────────────────────────────────
+             PAINEL (admin / coordenadora) — tela inicial
+             Hoje são só 3 números soltos, sem ação nenhuma.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="painel" hidden>
+          <div class="p-6 max-w-5xl mx-auto space-y-6">
+            <div>
+              <h1 class="text-xl font-bold text-blueDark">Painel</h1>
+              <p class="text-sm mt-1 text-gray60">Visão geral do Controle de Recepção</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="card p-5">
+                <div class="w-9 h-9 flex items-center justify-center mb-3" style="background:#1565C018">
+                  <i data-lucide="clipboard-list" class="w-[18px] h-[18px] text-blue"></i>
+                </div>
+                <div class="text-2xl font-bold text-blueDark">37</div>
+                <div class="text-sm text-gray60">Visitantes hoje</div>
+              </div>
+              <div class="card p-5">
+                <div class="w-9 h-9 flex items-center justify-center mb-3" style="background:#E6510018">
+                  <i data-lucide="calendar" class="w-[18px] h-[18px] text-orange"></i>
+                </div>
+                <div class="text-2xl font-bold text-blueDark">8</div>
+                <div class="text-sm text-gray60">Agendamentos hoje</div>
+              </div>
+              <div class="card p-5">
+                <div class="w-9 h-9 flex items-center justify-center mb-3" style="background:#1B5E2018">
+                  <i data-lucide="users" class="w-[18px] h-[18px] text-green"></i>
+                </div>
+                <div class="text-2xl font-bold text-blueDark">12</div>
+                <div class="text-sm text-gray60">Usuários ativos</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             REGISTRAR VISITANTE (recepcionista, admin, coord.)
+             Tela mais usada do sistema — balcão, uso contínuo.
+             Fluxo: digita nome OU CPF → sistema sugere servidor
+             municipal ou visitante já cadastrado → preenche o
+             resto → foto pela webcam → REGISTRAR.
+             Campos grandes de propósito (digitação rápida).
+             ──────────────────────────────────────────────── -->
+        <div data-inner="registrar" hidden>
+          <div class="p-6 max-w-4xl mx-auto space-y-5">
+            <div>
+              <h1 class="text-2xl font-bold text-blueDark">Registrar visitante</h1>
+              <p class="text-base mt-1 text-gray60">
+                Digite o nome ou CPF — o sistema identifica se é servidor municipal ou visitante externo.
+              </p>
+            </div>
+
+            <div class="alert alert-info">Servidor municipal · Órgão: Secretaria de Saúde · Mat. 20481</div>
+
+            <div class="card p-6 sm:p-8">
+              <form class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                  <!-- Coluna da foto (webcam) -->
+                  <div>
+                    <label class="field-label">Foto do visitante</label>
+                    <div class="aspect-square border-2 border-green flex items-center justify-center relative overflow-hidden bg-gray2">
+                      <div class="w-full h-full flex flex-col items-center justify-center gap-2">
+                        <i data-lucide="camera" class="w-9 h-9 text-gray20"></i>
+                        <span class="text-xs text-center px-3 font-medium text-gray60">Nenhuma foto</span>
+                      </div>
+                    </div>
+                    <div class="mt-3">
+                      <button type="button" class="btn btn-secondary btn-sm w-full">
+                        <i data-lucide="camera" class="w-4 h-4"></i> Abrir webcam
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Coluna dos dados -->
+                  <div class="md:col-span-2 space-y-5">
+                    <div>
+                      <label class="field-label">Nome completo <span class="text-red">*</span></label>
+                      <div class="relative">
+                        <input class="inp-l" value="Ana Paula Ribeiro" />
+                        <!-- Dropdown de sugestões (aparece ao digitar 3+ letras) -->
+                        <div class="absolute left-0 right-0 z-20 mt-1 border border-gray3 bg-white shadow-md">
+                          <button type="button" class="w-full text-left px-4 py-3 border-b border-gray3">
+                            <div class="font-semibold text-base text-blueDark">Ana Paula Ribeiro</div>
+                            <div class="text-sm text-gray60">Servidor municipal · Órgão Secretaria de Saúde · Mat. 20481</div>
+                          </button>
+                          <button type="button" class="w-full text-left px-4 py-3 border-b border-gray3">
+                            <div class="font-semibold text-base text-blueDark">Ana Paula Ribeiro Santos</div>
+                            <div class="text-sm text-gray60">Já cadastrado · último setor Gabinete</div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label class="field-label">CPF <span class="text-red">*</span></label>
+                        <input class="inp-l" value="123.456.789-09" />
+                        <p class="field-hint">000.000.000-00</p>
+                      </div>
+                      <div>
+                        <label class="field-label">Telefone</label>
+                        <input class="inp-l" placeholder="(98) 9xxxx-xxxx" />
+                      </div>
+                    </div>
+
+                    <!-- Só aparece quando a pessoa é servidor municipal -->
+                    <div>
+                      <label class="field-label">Órgão (servidor municipal)</label>
+                      <input class="inp-l font-semibold" value="Secretaria de Saúde" readonly style="background:#D6E6F7" />
+                    </div>
+
+                    <div>
+                      <label class="field-label">Setor procurado <span class="text-red">*</span></label>
+                      <select class="inp-l">
+                        <option>Selecione o setor...</option>
+                        <option selected>Gabinete</option>
+                        <option>Recursos Humanos</option>
+                        <option>Protocolo</option>
+                        <option>Outro (digitar)</option>
+                      </select>
+                      <p class="field-hint">Escolha da lista ou use Outro para digitar</p>
+                    </div>
+
+                    <div>
+                      <label class="field-label">Observação</label>
+                      <textarea class="inp-l" rows="2" placeholder="Opcional"></textarea>
+                      <p class="field-hint">Ex.: Liberado pela chefe de gabinete</p>
+                    </div>
+                  </div>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-xl w-full">
+                  <i data-lucide="user-plus" class="w-[22px] h-[22px]"></i> REGISTRAR VISITANTE
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             ENTRADAS DE HOJE (menu "Servidores / Visitantes")
+             Lista quem entrou hoje. Atualiza sozinho a cada 30s.
+             Chips filtram; excluir só admin/coordenadora.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="entradas" hidden>
+          <div class="p-6 max-w-5xl mx-auto space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div>
+                <h1 class="text-2xl font-bold text-blueDark">Servidores / Visitantes</h1>
+                <p class="text-base mt-1 text-gray60">
+                  Registros de hoje · 08/08/2026 · 37
+                  <span class="text-xs ml-2 text-gray20">atualiza a cada 30s</span>
+                </p>
+              </div>
+              <button class="btn btn-secondary btn-md">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+              </button>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button class="px-3 py-2 text-sm font-semibold border bg-blue text-white border-blue">Todos</button>
+              <button class="px-3 py-2 text-sm font-semibold border bg-white text-blueDark border-gray3">Servidores</button>
+              <button class="px-3 py-2 text-sm font-semibold border bg-white text-blueDark border-gray3">Externos</button>
+              <button class="px-3 py-2 text-sm font-semibold border bg-white text-blueDark border-gray3">Agendados</button>
+            </div>
+
+            <input class="inp-l" placeholder="Buscar por nome, CPF, telefone, setor ou órgão..." />
+
+            <div class="card">
+              <div class="px-5 py-4 border-t border-gray3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                <div class="flex items-start gap-3 min-w-0">
+                  <div class="w-12 h-12 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white bg-blue">AR</div>
+                  <div class="min-w-0">
+                    <div class="text-lg font-semibold text-blueDark">Ana Paula Ribeiro</div>
+                    <div class="text-sm text-gray60">Gabinete · CPF 123.456.789-09 · (98) 98888-1234</div>
+                    <div class="text-sm mt-1 font-semibold text-blue">Servidor municipal · Órgão Secretaria de Saúde</div>
+                    <div class="text-sm mt-1 text-blueDark">Obs.: Liberado pela chefe de gabinete</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                  <div class="text-base font-mono text-gray80">09:12</div>
+                  <button class="btn btn-danger btn-sm">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Excluir
+                  </button>
+                </div>
+              </div>
+
+              <div class="px-5 py-4 border-t border-gray3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                <div class="flex items-start gap-3 min-w-0">
+                  <div class="w-12 h-12 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white bg-blue">CM</div>
+                  <div class="min-w-0">
+                    <div class="text-lg font-semibold text-blueDark">Carlos Mendes</div>
+                    <div class="text-sm text-gray60">Protocolo · CPF 987.654.321-00 · Agendada</div>
+                    <div class="text-sm mt-1 text-gray20">Visitante externo</div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3 flex-shrink-0">
+                  <div class="text-base font-mono text-gray80">10:45</div>
+                  <button class="btn btn-danger btn-sm">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i> Excluir
+                  </button>
+                </div>
+              </div>
+
+              <!-- Paginação (componente reutilizado em quase toda lista) -->
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <span class="text-sm text-gray60">37 registros · página 1 de 5</span>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             AGENDA DO DIA (recepção)
+             A recepção vê quem tem hora marcada hoje e clica em
+             "Chegou" — isso cria o registro de entrada.
+             Cor de fundo por status: laranja = aguardando,
+             verde = já chegou.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="agenda" hidden>
+          <div class="p-6 max-w-4xl mx-auto space-y-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-2xl font-bold text-blueDark">Agenda do dia</h1>
+                <p class="text-base mt-1 text-gray60">
+                  Visitas agendadas — 08/08/2026 ·
+                  <span class="text-orange">5 aguardando</span> ·
+                  <span class="text-green">3 chegaram</span>
+                </p>
+              </div>
+              <button class="btn btn-secondary btn-md">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="px-5 py-5 border-b border-gray3 flex flex-col sm:flex-row sm:items-center gap-4 bg-orangeBg">
+                <div class="flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="text-xl font-bold text-blueDark">Carlos Mendes</div>
+                    <span class="text-xs font-bold px-2 py-1 bg-orange text-white">AGUARDANDO</span>
+                  </div>
+                  <div class="text-base mt-1 text-gray60">14:00 · Setor: <strong>Protocolo</strong> · Sala 302</div>
+                </div>
+                <button class="btn btn-primary btn-lg">
+                  <i data-lucide="user-plus" class="w-[22px] h-[22px]"></i> Chegou — registrar
+                </button>
+              </div>
+
+              <div class="px-5 py-5 border-b border-gray3 flex flex-col sm:flex-row sm:items-center gap-4 bg-greenBg">
+                <div class="flex-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <div class="text-xl font-bold text-blueDark">Joana Alves</div>
+                    <span class="text-xs font-bold px-2 py-1 bg-green text-white">CHEGOU</span>
+                  </div>
+                  <div class="text-base mt-1 text-gray60">09:30 · Setor: <strong>Gabinete</strong></div>
+                </div>
+                <span class="text-base font-semibold px-3 py-2 bg-white text-green">Já chegou</span>
+              </div>
+
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <span class="text-sm text-gray60">8 agendamentos · página 1 de 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             AGENDAMENTOS — LISTA
+             Admin/coordenadora podem cancelar e criar.
+             Recepcionista vê a MESMA tela só para consulta
+             (sem o botão "Agendar visita" e sem "Cancelar").
+             ──────────────────────────────────────────────── -->
+        <div data-inner="agendamentos" hidden>
+          <div class="p-6 max-w-5xl mx-auto space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div>
+                <h1 class="text-xl font-bold text-blueDark">Agendamentos</h1>
+                <p class="text-sm mt-1 text-gray60">
+                  A partir de hoje · só admin e coordenadora podem agendar visitas
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-secondary btn-md">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+                </button>
+                <button class="btn btn-primary btn-md">
+                  <i data-lucide="plus" class="w-4 h-4"></i> Agendar visita
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <!-- PROBLEMA: tabela sem overflow-x-auto estoura no celular -->
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray1">
+                    <th class="th">Visitante</th>
+                    <th class="th">CPF</th>
+                    <th class="th">Data</th>
+                    <th class="th">Hora</th>
+                    <th class="th">Setor</th>
+                    <th class="th">Status</th>
+                    <th class="th text-right"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-semibold text-blueDark">Carlos Mendes</td>
+                    <td class="td font-mono text-xs">987.654.321-00</td>
+                    <td class="td">08/08/2026</td>
+                    <td class="td font-mono">14:00</td>
+                    <td class="td">Protocolo</td>
+                    <td class="td">agendado</td>
+                    <td class="td text-right"><button class="btn btn-ghost btn-sm">Cancelar</button></td>
+                  </tr>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-semibold text-blueDark">Joana Alves</td>
+                    <td class="td font-mono text-xs">111.222.333-44</td>
+                    <td class="td">08/08/2026</td>
+                    <td class="td font-mono">09:30</td>
+                    <td class="td">Gabinete</td>
+                    <td class="td">chegou</td>
+                    <td class="td text-right"></td>
+                  </tr>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-semibold text-blueDark">Pedro Henrique Costa</td>
+                    <td class="td font-mono text-xs">—</td>
+                    <td class="td">11/08/2026</td>
+                    <td class="td font-mono">08:15</td>
+                    <td class="td">Recursos Humanos</td>
+                    <td class="td">agendado</td>
+                    <td class="td text-right"><button class="btn btn-ghost btn-sm">Cancelar</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <span class="text-sm text-gray60">14 agendamentos · página 1 de 2</span>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             NOVO AGENDAMENTO (admin / coordenadora)
+             Avisa quando já existe agendamento igual (duplicata)
+             e quando o nome não está na lista de servidores.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="agendar" hidden>
+          <div class="p-6 max-w-3xl mx-auto space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h1 class="text-2xl font-bold text-blueDark">Novo agendamento</h1>
+                <p class="text-base mt-1 text-gray60">
+                  Digite o nome ou CPF — o sistema avisa se a pessoa já existe ou se há agendamento duplicado.
+                </p>
+              </div>
+              <button class="btn btn-ghost btn-md">Voltar</button>
+            </div>
+
+            <div class="alert alert-warn">
+              Atenção: já existe agendamento para este CPF em 08/08/2026 às 14:00 · setor Protocolo.
+            </div>
+
+            <div class="card p-6 sm:p-8">
+              <form class="space-y-5">
+                <div>
+                  <label class="field-label">Nome do visitante <span class="text-red">*</span></label>
+                  <input class="inp-l" placeholder="Digite o nome" />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label class="field-label">CPF</label>
+                    <input class="inp-l" placeholder="000.000.000-00" />
+                    <p class="field-hint">000.000.000-00</p>
+                  </div>
+                  <div>
+                    <label class="field-label">Telefone</label>
+                    <input class="inp-l" placeholder="(98) 9xxxx-xxxx" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="field-label">Setor procurado <span class="text-red">*</span></label>
+                  <select class="inp-l">
+                    <option>Selecione o setor...</option>
+                    <option>Gabinete</option>
+                    <option>Protocolo</option>
+                    <option>Outro (digitar)</option>
+                  </select>
+                  <p class="field-hint">Escolha da lista ou use Outro para digitar</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label class="field-label">Data <span class="text-red">*</span></label>
+                    <input class="inp-l" type="date" value="2026-08-08" />
+                  </div>
+                  <div>
+                    <label class="field-label">Hora <span class="text-red">*</span></label>
+                    <input class="inp-l" type="time" value="14:00" />
+                  </div>
+                </div>
+
+                <div>
+                  <label class="field-label">Sala</label>
+                  <input class="inp-l" placeholder="Ex.: 302" />
+                </div>
+
+                <div>
+                  <label class="field-label">Observação</label>
+                  <textarea class="inp-l" rows="2" placeholder="Opcional"></textarea>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-xl w-full">
+                  <i data-lucide="calendar-plus" class="w-[22px] h-[22px]"></i> REGISTRAR AGENDAMENTO
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             VISITANTES CADASTRADOS (histórico)
+             Pessoas únicas por CPF. Clicar no nome abre o
+             histórico de todas as visitas daquela pessoa.
+             OBS: o nome deste menu confunde com "Servidores /
+             Visitantes" (que é só o dia de hoje).
+             ──────────────────────────────────────────────── -->
+        <div data-inner="cadastrados" hidden>
+          <div class="p-6 max-w-5xl mx-auto space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div>
+                <h1 class="text-2xl font-bold text-blueDark">Visitantes cadastrados</h1>
+                <p class="text-base mt-1 text-gray60">
+                  Pessoas únicas por CPF · clique no nome para ver o histórico · 1.284
+                </p>
+              </div>
+              <button class="btn btn-secondary btn-md">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+              </button>
+            </div>
+
+            <input class="inp-l" placeholder="Buscar por nome ou CPF..." />
+
+            <div class="card">
+              <div class="px-5 py-4 border-t border-gray3 flex items-center gap-4">
+                <div class="w-14 h-14 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white bg-blue">AR</div>
+                <div class="min-w-0 flex-1">
+                  <button class="text-left text-lg font-semibold text-blue hover:underline">Ana Paula Ribeiro</button>
+                  <div class="text-sm mt-0.5 text-gray60">CPF 123.456.789-09</div>
+                  <div class="text-xs mt-1 text-gray20">14 visita(s) · última: 08/08/2026 às 09:12 · Gabinete</div>
+                </div>
+              </div>
+              <div class="px-5 py-4 border-t border-gray3 flex items-center gap-4">
+                <div class="w-14 h-14 flex items-center justify-center flex-shrink-0 text-xs font-bold text-white bg-blue">CM</div>
+                <div class="min-w-0 flex-1">
+                  <button class="text-left text-lg font-semibold text-blue hover:underline">Carlos Mendes</button>
+                  <div class="text-sm mt-0.5 text-gray60">CPF 987.654.321-00</div>
+                  <div class="text-xs mt-1 text-gray20">3 visita(s) · última: 08/08/2026 às 10:45 · Protocolo</div>
+                </div>
+              </div>
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <span class="text-sm text-gray60">1.284 pessoas · página 1 de 129</span>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             HISTÓRICO DE UM VISITANTE (drill-down do anterior)
+             Visitas agrupadas por dia.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="historico" hidden>
+          <div class="p-6 max-w-4xl mx-auto space-y-5">
+            <button class="btn btn-ghost btn-sm">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i> Voltar
+            </button>
+
+            <div class="card p-5">
+              <div class="flex items-start gap-4">
+                <div class="w-[72px] h-[72px] flex items-center justify-center flex-shrink-0 text-sm font-bold text-white bg-blue">AR</div>
+                <div class="min-w-0">
+                  <h1 class="text-2xl font-bold text-blueDark truncate">Ana Paula Ribeiro</h1>
+                  <p class="text-base mt-1 text-gray60">CPF 123.456.789-09 · (98) 98888-1234</p>
+                  <p class="text-sm mt-2 font-medium text-blue">14 visita(s) registrada(s)</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h2 class="text-lg font-bold text-blueDark">Histórico de atendimentos</h2>
+              <p class="text-sm mt-1 text-gray60">Dias e setores para onde a pessoa foi</p>
+            </div>
+
+            <div class="card">
+              <div class="px-5 py-2.5 text-sm font-bold border-t border-gray3 bg-gray2 text-blueDark">08/08/2026</div>
+              <div class="px-5 py-3 border-t border-gray3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <div class="min-w-0">
+                  <div class="text-base font-semibold text-blueDark">Gabinete</div>
+                  <div class="text-sm text-gray60">Espontânea · Obs.: Liberado pela chefe de gabinete</div>
+                </div>
+                <div class="text-base font-mono flex-shrink-0 text-gray80">09:12</div>
+              </div>
+
+              <div class="px-5 py-2.5 text-sm font-bold border-t border-gray3 bg-gray2 text-blueDark">21/07/2026</div>
+              <div class="px-5 py-3 border-t border-gray3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <div class="min-w-0">
+                  <div class="text-base font-semibold text-blueDark">Recursos Humanos</div>
+                  <div class="text-sm text-gray60">Agendada</div>
+                </div>
+                <div class="text-base font-mono flex-shrink-0 text-gray80">15:40</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             RELATÓRIO DO DIA
+             Imprimir esconde header e sidebar (CSS de print).
+             Baixar CSV exporta o dia inteiro.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="relatorio" hidden>
+          <div class="p-6 max-w-5xl mx-auto space-y-5">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+              <div>
+                <h1 class="text-xl font-bold text-blueDark">Relatório do dia</h1>
+                <p class="text-sm mt-1 text-gray60">sábado, 8 de agosto de 2026</p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button class="btn btn-secondary btn-md"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar</button>
+                <button class="btn btn-secondary btn-md"><i data-lucide="file-down" class="w-4 h-4"></i> Baixar CSV</button>
+                <button class="btn btn-primary btn-md"><i data-lucide="printer" class="w-4 h-4"></i> Imprimir</button>
+              </div>
+            </div>
+
+            <!-- PROBLEMA: grid-cols-3 fixo, aperta no celular -->
+            <div class="grid grid-cols-3 gap-3">
+              <div class="card p-4">
+                <div class="text-2xl font-bold text-blueDark">37</div>
+                <div class="text-sm text-gray60">Total</div>
+              </div>
+              <div class="card p-4">
+                <div class="text-2xl font-bold text-blueDark">29</div>
+                <div class="text-sm text-gray60">Espontâneas</div>
+              </div>
+              <div class="card p-4">
+                <div class="text-2xl font-bold text-blueDark">8</div>
+                <div class="text-sm text-gray60">Agendadas</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray1">
+                    <th class="th">Horário</th>
+                    <th class="th">Nome</th>
+                    <th class="th">CPF</th>
+                    <th class="th">Setor</th>
+                    <th class="th">Órgão</th>
+                    <th class="th">Telefone</th>
+                    <th class="th">Obs.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-mono text-xs">09:12</td>
+                    <td class="td font-semibold text-blueDark">Ana Paula Ribeiro</td>
+                    <td class="td font-mono text-xs">123.456.789-09</td>
+                    <td class="td">Gabinete</td>
+                    <td class="td">Secretaria de Saúde</td>
+                    <td class="td">(98) 98888-1234</td>
+                    <td class="td text-xs text-gray60">Liberado pela chefe de gabinete</td>
+                  </tr>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-mono text-xs">10:45</td>
+                    <td class="td font-semibold text-blueDark">Carlos Mendes</td>
+                    <td class="td font-mono text-xs">987.654.321-00</td>
+                    <td class="td">Protocolo</td>
+                    <td class="td">—</td>
+                    <td class="td">—</td>
+                    <td class="td text-xs text-gray60">—</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <span class="text-sm text-gray60">37 registros · página 1 de 3</span>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             SETOR PROCURADO (cadastro dos setores)
+             Alimenta o select "Setor procurado" das outras telas.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="setores" hidden>
+          <div class="p-6 max-w-3xl mx-auto space-y-5">
+            <div>
+              <h1 class="text-2xl font-bold text-blueDark">Setor procurado</h1>
+              <p class="text-base mt-1 text-gray60">
+                Cadastre os nomes dos setores para usar no registro e nos agendamentos.
+                Os nomes poderão ser ajustados depois.
+              </p>
+            </div>
+
+            <div class="card p-6">
+              <form class="space-y-4">
+                <div>
+                  <label class="field-label">Novo setor <span class="text-red">*</span></label>
+                  <input class="inp-l" placeholder="Ex.: Gabinete, Recursos Humanos..." />
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-primary btn-md">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Cadastrar setor
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 sm:items-end justify-between">
+              <input class="inp" placeholder="Buscar setor..." />
+              <button class="btn btn-secondary btn-md">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-semibold text-blueDark">Gabinete</div>
+                  <div class="text-xs text-gray20">Ativo</div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <button class="btn btn-ghost btn-sm">Editar</button>
+                  <button class="btn btn-secondary btn-sm">Desativar</button>
+                  <button class="btn btn-danger btn-sm"><i data-lucide="trash-2" class="w-4 h-4"></i> Excluir</button>
+                </div>
+              </div>
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="font-semibold text-gray20">Ouvidoria</div>
+                  <div class="text-xs text-gray20">Inativo</div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <button class="btn btn-ghost btn-sm">Editar</button>
+                  <button class="btn btn-secondary btn-sm">Ativar</button>
+                  <button class="btn btn-danger btn-sm"><i data-lucide="trash-2" class="w-4 h-4"></i> Excluir</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             USUÁRIOS (admin / coordenadora)
+             Só ativa/desativa acesso — não edita papel.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="usuarios" hidden>
+          <div class="p-6 max-w-4xl mx-auto space-y-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h1 class="text-xl font-bold text-blueDark">Usuários</h1>
+                <p class="text-sm mt-1 text-gray60">Pessoas com acesso ao sistema</p>
+              </div>
+              <button class="btn btn-secondary btn-md">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+              </button>
+            </div>
+
+            <div class="card">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="bg-gray1">
+                    <th class="th">Nome</th>
+                    <th class="th">E-mail</th>
+                    <th class="th">Papel</th>
+                    <th class="th">Setor</th>
+                    <th class="th">Status</th>
+                    <th class="th"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-semibold text-blueDark">Jurandy Santana</td>
+                    <td class="td text-gray80">semcas@gmail.com</td>
+                    <td class="td">Administrador</td>
+                    <td class="td text-gray60">—</td>
+                    <td class="td text-green">Ativo</td>
+                    <td class="td text-right"><button class="btn btn-ghost btn-sm">Desativar</button></td>
+                  </tr>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-semibold text-blueDark">Maria Souza Lima</td>
+                    <td class="td text-gray80">agendamento.gabinete@exemplo.com</td>
+                    <td class="td">Setor (agendamento)</td>
+                    <td class="td text-gray60">Gabinete</td>
+                    <td class="td text-green">Ativo</td>
+                    <td class="td text-right"><button class="btn btn-ghost btn-sm">Desativar</button></td>
+                  </tr>
+                  <tr class="border-t border-gray3">
+                    <td class="td font-semibold text-blueDark">Fernanda Rocha</td>
+                    <td class="td text-gray80">recepcao@exemplo.com</td>
+                    <td class="td">Recepcionista</td>
+                    <td class="td text-gray60">—</td>
+                    <td class="td text-red">Inativo</td>
+                    <td class="td text-right"><button class="btn btn-ghost btn-sm">Ativar</button></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <span class="text-sm text-gray60">12 usuários · página 1 de 2</span>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                  <button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             ENVIAR CONVITES
+             Não manda e-mail: gera um link que o admin copia
+             e envia por WhatsApp. O status mostra se a pessoa
+             já concluiu o cadastro.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="convites" hidden>
+          <div class="p-6 max-w-3xl mx-auto space-y-5">
+            <div>
+              <h1 class="text-xl font-bold text-blueDark">Enviar convites</h1>
+              <p class="text-sm mt-1 text-gray60">
+                Gere um link e envie para a pessoa se cadastrar. Em Convites recentes você vê se ela já concluiu o cadastro.
+              </p>
+            </div>
+
+            <div class="card p-6">
+              <form class="space-y-4">
+                <div>
+                  <label class="field-label">E-mail da pessoa <span class="text-red">*</span></label>
+                  <input class="inp" type="email" placeholder="email@exemplo.com" />
+                </div>
+                <div>
+                  <label class="field-label">Tipo de acesso <span class="text-red">*</span></label>
+                  <select class="inp">
+                    <option>Coordenadora — acesso completo</option>
+                    <option>Administrador — acesso completo</option>
+                    <option selected>Recepcionista — cadastro de visitantes</option>
+                    <option>Setor (agendamento) — agenda visitas do próprio setor</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-primary btn-md">
+                  <i data-lucide="send" class="w-4 h-4"></i> Gerar link de convite
+                </button>
+              </form>
+
+              <div class="mt-5 p-4 border border-blue bg-blueBg">
+                <div class="text-xs font-semibold uppercase mb-2 text-blue">Link do convite</div>
+                <div class="flex items-start gap-2">
+                  <code class="flex-1 text-sm break-all font-mono text-blueDark">https://recepcao.semcas.app/?convite=8f3c1a9e-4b22-47d1-9c0e-7ab5</code>
+                  <button class="btn btn-secondary btn-sm">
+                    <i data-lucide="copy" class="w-4 h-4"></i> Copiar link
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="px-5 py-4 border-b border-gray3 flex items-center justify-between">
+                <h2 class="font-bold text-blueDark">Convites recentes</h2>
+                <button class="btn btn-ghost btn-sm"><i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar</button>
+              </div>
+
+              <div class="px-5 py-3 border-t border-gray3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <div class="min-w-0">
+                  <div class="font-semibold text-sm text-blueDark">agendamento.gabinete@exemplo.com</div>
+                  <div class="text-xs mt-1 flex flex-wrap items-center gap-2 text-gray60">
+                    <span>Setor (agendamento)</span>
+                    <span class="font-semibold px-2 py-0.5 text-xs bg-greenBg text-green">Já se cadastrou</span>
+                    <span>· 07/08/2026 16:22</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="px-5 py-3 border-t border-gray3 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
+                <div class="min-w-0">
+                  <div class="font-semibold text-sm text-blueDark">recepcao2@exemplo.com</div>
+                  <div class="text-xs mt-1 flex flex-wrap items-center gap-2 text-gray60">
+                    <span>Recepcionista</span>
+                    <span class="font-semibold px-2 py-0.5 text-xs bg-orangeBg text-orange">Aguardando cadastro</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <button class="btn btn-secondary btn-sm"><i data-lucide="link-2" class="w-4 h-4"></i> Copiar link</button>
+                  <button class="btn btn-ghost btn-sm">Cancelar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             SETOR — MEUS AGENDAMENTOS (papel "setor")
+             Este papel só vê 2 telas. O setor vem do cadastro
+             e aparece como título.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="setorLista" hidden>
+          <div class="p-6 max-w-3xl mx-auto space-y-5">
+            <div class="flex items-end justify-between gap-4">
+              <div>
+                <h1 class="text-xl font-bold text-blueDark">Gabinete</h1>
+                <p class="text-sm mt-1 text-gray60">Agendamentos do seu setor</p>
+              </div>
+              <button class="btn btn-secondary btn-md">
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Atualizar
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="px-5 py-4 border-b border-gray3 flex items-center gap-2">
+                <i data-lucide="calendar" class="w-[18px] h-[18px] text-blue"></i>
+                <h2 class="font-bold text-blueDark">Agendamentos</h2>
+              </div>
+              <div class="px-5 py-4 border-t border-gray3 flex items-center justify-between gap-4">
+                <div>
+                  <div class="font-semibold text-blueDark">Joana Alves</div>
+                  <div class="text-sm text-gray60">08/08/2026 às 09:30 · Sala 201 · Chegou</div>
+                </div>
+              </div>
+              <div class="px-5 py-4 border-t border-gray3 flex items-center justify-between gap-4">
+                <div>
+                  <div class="font-semibold text-blueDark">Roberto Dias</div>
+                  <div class="text-sm text-gray60">12/08/2026 às 11:00</div>
+                </div>
+                <button class="btn btn-ghost btn-sm">Cancelar</button>
+              </div>
+              <div class="px-5 py-3 border-t border-gray3 flex items-center justify-between gap-3">
+                <span class="text-sm text-gray60">6 agendamentos · página 1 de 1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ────────────────────────────────────────────────
+             SETOR — NOVO AGENDAMENTO
+             O campo Setor é SEMPRE somente leitura: vem do
+             cadastro feito no convite. Não pode ser trocado.
+             ──────────────────────────────────────────────── -->
+        <div data-inner="setorNovo" hidden>
+          <div class="p-6 max-w-2xl mx-auto space-y-5">
+            <div>
+              <h1 class="text-xl font-bold text-blueDark">Novo agendamento</h1>
+              <p class="text-sm mt-1 text-gray60">Este agendamento será sempre para o seu setor.</p>
+            </div>
+
+            <div class="card p-6">
+              <form class="space-y-4">
+                <div>
+                  <label class="field-label">Setor</label>
+                  <input class="inp-l font-semibold" value="Gabinete" readonly style="background:#D5DCE6" />
+                  <p class="field-hint">Definido no seu cadastro — não pode ser alterado</p>
+                </div>
+                <div>
+                  <label class="field-label">Nome do visitante <span class="text-red">*</span></label>
+                  <input class="inp" placeholder="Nome completo" />
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="field-label">CPF</label>
+                    <input class="inp" placeholder="000.000.000-00" />
+                  </div>
+                  <div>
+                    <label class="field-label">Telefone</label>
+                    <input class="inp" placeholder="(98) 9xxxx-xxxx" />
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="field-label">Data <span class="text-red">*</span></label>
+                    <input class="inp" type="date" value="2026-08-08" />
+                  </div>
+                  <div>
+                    <label class="field-label">Hora <span class="text-red">*</span></label>
+                    <input class="inp" type="time" />
+                  </div>
+                </div>
+                <div>
+                  <label class="field-label">Sala</label>
+                  <input class="inp" placeholder="Ex.: 302" />
+                </div>
+                <div>
+                  <label class="field-label">Observação</label>
+                  <textarea class="inp" rows="2" placeholder="Opcional"></textarea>
+                </div>
+                <button type="button" class="btn btn-primary btn-lg w-full">
+                  <i data-lucide="plus" class="w-[22px] h-[22px]"></i> Agendar para Gabinete
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     ESTRUTURA, PAPÉIS E REGRAS — leia antes de redesenhar
+     ══════════════════════════════════════════════════════════ -->
+<section id="estrutura" data-screen="estrutura" hidden>
+  <div class="p-6 max-w-4xl mx-auto space-y-8 py-12">
+
+    <div>
+      <h1 class="text-3xl font-bold text-blueDark">SEMCAS · Controle de Recepção</h1>
+      <p class="text-base mt-2 text-gray60">
+        Sistema de recepção e agendamento de uma secretaria municipal.
+        Stack: Vite + React 19 + Tailwind 4 + Supabase. Sem React Router — a navegação
+        é um estado <code>pagina</code> que troca o conteúdo do <code>&lt;main&gt;</code>.
+      </p>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold text-blueDark mb-3">Os 4 papéis e o que cada um vê</h2>
+      <div class="card">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray1">
+              <th class="th">Papel</th>
+              <th class="th">Menus (na ordem atual)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t border-gray3">
+              <td class="td font-semibold text-blueDark align-top">Administrador<br /><span class="font-normal text-gray20">e Coordenadora<br />(menu idêntico)</span></td>
+              <td class="td">
+                Painel · Registrar visitante · Servidores / Visitantes ·
+                Visitantes cadastrados · Agendar visita · Agendamentos ·
+                Setor procurado · Relatório do dia · Usuários · Enviar convites
+              </td>
+            </tr>
+            <tr class="border-t border-gray3">
+              <td class="td font-semibold text-blueDark align-top">Recepcionista</td>
+              <td class="td">
+                Registrar · Servidores / Visitantes · Agendamentos (só consulta) ·
+                Agenda do dia · Relatório do dia
+              </td>
+            </tr>
+            <tr class="border-t border-gray3">
+              <td class="td font-semibold text-blueDark align-top">Setor (agendamento)</td>
+              <td class="td">Meus agendamentos · Novo agendamento</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold text-blueDark mb-3">Regras de negócio que o design não pode quebrar</h2>
+      <ul class="space-y-2 text-sm text-gray80 list-disc pl-5">
+        <li><strong>Setor travado:</strong> quem entra com convite de "Setor (agendamento)" é obrigado a informar o setor no cadastro. Depois disso, todo agendamento que criar vai para aquele setor — o campo aparece somente leitura.</li>
+        <li><strong>Agendar visita</strong> é exclusivo de admin e coordenadora. Recepcionista só consulta a lista.</li>
+        <li><strong>Excluir visita</strong> só admin e coordenadora (regra também no banco, via RLS).</li>
+        <li><strong>Servidor municipal x visitante externo:</strong> a base tem ~21 mil servidores importados de CSV. Ao digitar o nome, o sistema sugere e marca "Servidor municipal · Órgão X". Quem não está na lista é externo. Essa distinção precisa ficar visualmente óbvia.</li>
+        <li><strong>Convite não manda e-mail:</strong> gera link, o admin copia e envia.</li>
+        <li><strong>Foto:</strong> tirada na hora pela webcam. Só funciona em HTTPS ou localhost — o aviso sobre isso precisa continuar existindo.</li>
+        <li><strong>Crédito:</strong> "Desenvolvido por Jurandy Santana" no rodapé da sidebar e nas telas públicas.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold text-blueDark mb-3">Problemas conhecidos — o que eu quero que melhore</h2>
+      <ol class="space-y-2 text-sm text-gray80 list-decimal pl-5">
+        <li><strong>Não funciona bem no celular.</strong> A sidebar de 208px nunca colapsa e come a largura da tela. Precisa de menu hamburguer / drawer.</li>
+        <li><strong>Tabelas estouram</strong> a largura em telas pequenas (Relatório, Usuários, Agendamentos) — faltam scroll horizontal ou virar cartões.</li>
+        <li><strong>Menu do gestor tem 10 itens soltos</strong>, sem agrupamento. Poderia ter seções (Recepção / Agenda / Administração).</li>
+        <li><strong>Nomes que confundem:</strong> "Servidores / Visitantes" (é o dia de hoje) x "Visitantes cadastrados" (é o histórico); e três coisas de agenda parecidas — "Agendar visita", "Agendamentos", "Agenda do dia".</li>
+        <li><strong>Ícones repetidos:</strong> "Agendamentos" e "Agenda do dia" usam o mesmo ícone de calendário.</li>
+        <li><strong>Painel é inútil:</strong> três números que não clicam em nada.</li>
+        <li><strong>Visual seco:</strong> tudo com canto reto e a mesma hierarquia; falta respiro e destaque no que importa.</li>
+      </ol>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold text-blueDark mb-3">Paleta atual (pode mudar, é só a referência)</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="card p-3"><div class="h-10 mb-2 bg-blueDark"></div>blueDark #0A2F5C</div>
+        <div class="card p-3"><div class="h-10 mb-2 bg-blue"></div>blue #1565C0</div>
+        <div class="card p-3"><div class="h-10 mb-2 bg-sidebar"></div>sidebar #0B3A6E</div>
+        <div class="card p-3"><div class="h-10 mb-2 bg-blueBg"></div>blueBg #D6E6F7</div>
+        <div class="card p-3"><div class="h-10 mb-2 bg-green"></div>green #1B5E20</div>
+        <div class="card p-3"><div class="h-10 mb-2 bg-orange"></div>orange #E65100</div>
+        <div class="card p-3"><div class="h-10 mb-2 bg-red"></div>red #B71C1C</div>
+        <div class="card p-3"><div class="h-10 mb-2 bg-gray1 border border-gray3"></div>gray1 #E4E9F0</div>
+      </div>
+      <p class="text-sm mt-3 text-gray60">
+        Fonte: Source Sans 3. Cantos retos (sem border-radius). Botões com borda de 1.5px.
+        Alertas com barra colorida de 4px à esquerda.
+      </p>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold text-blueDark mb-3">Onde cada tela vive no código</h2>
+      <pre class="card p-4 text-xs overflow-x-auto text-gray80">src/
+  App.jsx                              menus por papel + roteamento por estado
+  components/layout/Shell.jsx          header + sidebar + main
+  components/ui/index.jsx              Btn, Field, Input, Select, Card, Alert, Empty
+  components/ui/Paginacao.jsx          paginação usada em todas as listas
+  components/setores/                  select de setor + hook de setores ativos
+  pages/auth/Login.jsx                 tela "login"
+  pages/auth/AceitarConvite.jsx        tela "convite"
+  pages/recepcao/Registrar.jsx         tela "registrar"
+  pages/recepcao/EntradasHoje.jsx      tela "entradas"
+  pages/recepcao/AgendaDia.jsx         tela "agenda"
+  pages/gestor/Painel.jsx              tela "painel"
+  pages/gestor/Usuarios.jsx            tela "usuarios"
+  pages/gestor/Agendamentos.jsx        telas "agendamentos" e "agendar"
+  pages/setor/Setor.jsx                telas "setorLista" e "setorNovo"
+  pages/admin/EnviarConvites.jsx       tela "convites"
+  pages/admin/SetoresProcurados.jsx    tela "setores"
+  pages/visitantes/VisitantesCadastrados.jsx   telas "cadastrados" e "historico"
+  pages/visitantes/RelatorioDia.jsx    tela "relatorio"</pre>
+    </div>
+
+    <div class="alert alert-info">
+      Para redesenhar: mantenha o atributo <code>data-inner</code> / <code>data-screen</code> de cada tela
+      para eu conseguir mapear de volta para os arquivos React acima.
+    </div>
+  </div>
+</section>
+
+<script>
+  // ═══════════════════════════════════════════════════════════
+  // Navegação do mockup. Nada disso existe no produto real.
+  // ═══════════════════════════════════════════════════════════
+  const SCREENS = [
+    { id: 'login',        label: 'Login',                        role: 'Público' },
+    { id: 'convite',      label: 'Aceitar convite',              role: 'Público' },
+    { id: 'painel',       label: 'Painel',                       role: 'admin',         inner: true },
+    { id: 'registrar',    label: 'Registrar visitante',          role: 'recepcionista', inner: true },
+    { id: 'entradas',     label: 'Servidores / Visitantes',      role: 'recepcionista', inner: true },
+    { id: 'agenda',       label: 'Agenda do dia',                role: 'recepcionista', inner: true },
+    { id: 'agendamentos', label: 'Agendamentos (lista)',         role: 'admin',         inner: true },
+    { id: 'agendar',      label: 'Novo agendamento (gestor)',    role: 'admin',         inner: true },
+    { id: 'cadastrados',  label: 'Visitantes cadastrados',       role: 'admin',         inner: true },
+    { id: 'historico',    label: 'Histórico do visitante',       role: 'admin',         inner: true },
+    { id: 'relatorio',    label: 'Relatório do dia',             role: 'admin',         inner: true },
+    { id: 'setores',      label: 'Setor procurado',              role: 'admin',         inner: true },
+    { id: 'usuarios',     label: 'Usuários',                     role: 'admin',         inner: true },
+    { id: 'convites',     label: 'Enviar convites',              role: 'admin',         inner: true },
+    { id: 'setorLista',   label: 'Setor · Meus agendamentos',    role: 'setor',         inner: true },
+    { id: 'setorNovo',    label: 'Setor · Novo agendamento',     role: 'setor',         inner: true },
+    { id: 'estrutura',    label: 'Estrutura e regras (docs)',    role: 'Documentação' },
+  ]
+
+  const MENUS = {
+    admin: [
+      { inner: 'painel',       label: 'Painel',                  icon: 'home' },
+      { inner: 'registrar',    label: 'Registrar visitante',     icon: 'user-plus' },
+      { inner: 'entradas',     label: 'Servidores / Visitantes', icon: 'clipboard-list' },
+      { inner: 'cadastrados',  label: 'Visitantes cadastrados',  icon: 'contact-round' },
+      { inner: 'agendar',      label: 'Agendar visita',          icon: 'calendar-plus' },
+      { inner: 'agendamentos', label: 'Agendamentos',            icon: 'calendar' },
+      { inner: 'setores',      label: 'Setor procurado',         icon: 'building-2' },
+      { inner: 'relatorio',    label: 'Relatório do dia',        icon: 'file-text' },
+      { inner: 'usuarios',     label: 'Usuários',                icon: 'users' },
+      { inner: 'convites',     label: 'Enviar convites',         icon: 'mail' },
+    ],
+    recepcionista: [
+      { inner: 'registrar',    label: 'Registrar',               icon: 'user-plus' },
+      { inner: 'entradas',     label: 'Servidores / Visitantes', icon: 'clipboard-list' },
+      { inner: 'agendamentos', label: 'Agendamentos',            icon: 'calendar' },
+      { inner: 'agenda',       label: 'Agenda do dia',           icon: 'calendar' },
+      { inner: 'relatorio',    label: 'Relatório do dia',        icon: 'file-text' },
+    ],
+    setor: [
+      { inner: 'setorLista',   label: 'Meus agendamentos',       icon: 'home' },
+      { inner: 'setorNovo',    label: 'Novo agendamento',        icon: 'user-plus' },
+    ],
+  }
+
+  const USUARIO = {
+    admin:         { nome: 'Jurandy Santana', papel: 'Administrador',      iniciais: 'JS' },
+    recepcionista: { nome: 'Fernanda Rocha',  papel: 'Recepcionista',      iniciais: 'FR' },
+    setor:         { nome: 'Maria Souza Lima', papel: 'Setor (agendamento) · Gabinete', iniciais: 'ML' },
+  }
+
+  const picker = document.getElementById('screenPicker')
+  const roleTag = document.getElementById('roleTag')
+  const shell = document.getElementById('appShell')
+  const nav = document.getElementById('shellNav')
+
+  for (const s of SCREENS) {
+    const opt = document.createElement('option')
+    opt.value = s.id
+    opt.textContent = s.label
+    picker.appendChild(opt)
+  }
+
+  function renderNav(role, activeInner) {
+    nav.innerHTML = ''
+    for (const item of (MENUS[role] || [])) {
+      const active = item.inner === activeInner
+      const btn = document.createElement('button')
+      btn.className = 'w-full flex items-center gap-3 px-4 py-3 text-sm relative transition-colors text-left'
+      btn.style.color = active ? '#FFFFFF' : 'rgba(255,255,255,0.82)'
+      btn.style.backgroundColor = active ? '#1565C0' : 'transparent'
+      btn.style.fontWeight = active ? '600' : '500'
+      btn.style.fontSize = role === 'recepcionista' ? '15px' : '14px'
+      btn.innerHTML =
+        (active ? '<span class="absolute left-0 top-0 bottom-0 w-1" style="background:#90CAF9"></span>' : '')
+        + '<i data-lucide="' + item.icon + '" class="w-[18px] h-[18px]"></i>'
+        + '<span>' + item.label + '</span>'
+      btn.onclick = () => show(item.inner)
+      nav.appendChild(btn)
+    }
+  }
+
+  function show(id) {
+    const screen = SCREENS.find((s) => s.id === id) || SCREENS[0]
+    picker.value = screen.id
+    roleTag.textContent = screen.role
+    location.hash = screen.id
+
+    document.querySelectorAll('[data-screen]').forEach((el) => { el.hidden = true })
+    document.querySelectorAll('[data-inner]').forEach((el) => { el.hidden = true })
+
+    if (screen.inner) {
+      shell.hidden = false
+      const alvo = document.querySelector('[data-inner="' + screen.id + '"]')
+      if (alvo) alvo.hidden = false
+      const u = USUARIO[screen.role] || USUARIO.admin
+      document.getElementById('shellNome').textContent = u.nome
+      document.getElementById('shellPapel').textContent = u.papel
+      document.getElementById('shellAvatar').textContent = u.iniciais
+      renderNav(screen.role, screen.id)
+    } else {
+      const alvo = document.querySelector('[data-screen="' + screen.id + '"]')
+      if (alvo) alvo.hidden = false
+    }
+
+    lucide.createIcons()
+    window.scrollTo({ top: 0 })
+  }
+
+  picker.addEventListener('change', (e) => show(e.target.value))
+  document.querySelector('[href="#estrutura"]').addEventListener('click', (e) => {
+    e.preventDefault()
+    show('estrutura')
+  })
+
+  show(SCREENS.some((s) => s.id === location.hash.slice(1)) ? location.hash.slice(1) : 'login')
+</script>
+</body>
+</html>

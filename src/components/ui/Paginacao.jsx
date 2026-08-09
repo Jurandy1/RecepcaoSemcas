@@ -1,35 +1,35 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { C } from '../lib/theme'
-import { Btn } from './ui'
+import { Btn } from './index.jsx'
 
-export default function Paginacao({ pagina, totalPaginas, onChange, totalItens }) {
+export default function Paginacao({ pagina, totalPaginas, onChange, totalItens, rotulo = 'registro' }) {
   if (!totalItens && totalPaginas <= 1) return null
 
+  const plural = totalItens === 1 ? rotulo : `${rotulo}s`
+
   return (
-    <div className="px-5 py-3 border-t flex items-center justify-between gap-3" style={{ borderColor: C.gray3 }}>
-      <div className="text-sm" style={{ color: C.gray60 }}>
-        Página {pagina} de {Math.max(totalPaginas, 1)}
-        {typeof totalItens === 'number' ? ` · ${totalItens} registro(s)` : ''}
-      </div>
-      <div className="flex items-center gap-2">
+    <div className="px-4 sm:px-5 py-3 border-t border-gray-2 bg-gray-1 flex items-center justify-between gap-3">
+      <span className="text-sm text-gray-20">
+        {typeof totalItens === 'number' ? `${totalItens.toLocaleString('pt-BR')} ${plural} · ` : ''}
+        página {pagina} de {Math.max(totalPaginas, 1)}
+      </span>
+      <div className="flex gap-1 flex-shrink-0">
         <Btn
-          variant="secondary"
-          size="sm"
+          variant="outline"
+          size="xs"
           icon={ChevronLeft}
-          disabled={pagina <= 1 || totalPaginas <= 1}
+          disabled={pagina <= 1}
           onClick={() => onChange(pagina - 1)}
-        >
-          Anterior
-        </Btn>
+          aria-label="Página anterior"
+        />
         <Btn
-          variant="secondary"
-          size="sm"
-          disabled={pagina >= totalPaginas || totalPaginas <= 1}
+          variant="outline"
+          size="xs"
+          icon={ChevronRight}
+          disabled={pagina >= totalPaginas}
           onClick={() => onChange(pagina + 1)}
-        >
-          Próxima <ChevronRight size={14} />
-        </Btn>
+          aria-label="Próxima página"
+        />
       </div>
     </div>
   )

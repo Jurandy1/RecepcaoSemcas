@@ -38,17 +38,31 @@ powershell -ExecutionPolicy Bypass -File scripts\serve-dist.ps1 -Port 8080
 3. Abra **http://127.0.0.1:8080/** (use localhost — a webcam não funciona em `http://IP` sem HTTPS).
 4. Configure `dist/config.js` (ou `public/config.js` antes do build) com a URL e a chave anon do Supabase.
 
+## Estrutura do código
+
+```
+src/
+  components/layout/   Shell
+  components/ui/       botões, campos, paginação
+  components/setores/  seletor e hook de setores
+  pages/auth/          login e aceitar convite
+  pages/recepcao/      registrar, entradas do dia, agenda
+  pages/gestor/        painel, usuários, agendamentos
+  pages/setor/         perfil setor (agendamento)
+  pages/admin/         convites e setores procurados
+  pages/visitantes/    histórico e relatório
+  lib/                 supabase, auth, tema, CPF/telefone
+supabase/
+  schema.sql
+  patches/             scripts SQL incrementais
+```
+
 ## Supabase — SQL obrigatório
 
-Execute nesta ordem no **SQL Editor**:
+Ordem completa em [`supabase/README.md`](supabase/README.md). Resumo:
 
-1. [`supabase/schema.sql`](supabase/schema.sql) — base (perfis, visitantes, convites…)
-2. [`supabase/criar-convites.sql`](supabase/criar-convites.sql) — se a tabela convites faltar
-3. [`supabase/melhorias-recepcao.sql`](supabase/melhorias-recepcao.sql) — **servidores**, observação, índices
-4. [`supabase/setores-procurados.sql`](supabase/setores-procurados.sql) — cadastro de setores procurados
-5. [`supabase/criar-agendamentos.sql`](supabase/criar-agendamentos.sql) — **se faltar a tabela agendamentos**
-6. [`supabase/storage-fotos.sql`](supabase/storage-fotos.sql) — bucket das fotos (Storage)
-7. [`supabase/fix-admin.sql`](supabase/fix-admin.sql) — se o admin não entrar
+1. [`supabase/schema.sql`](supabase/schema.sql) — base
+2. Patches em [`supabase/patches/`](supabase/patches/) — convites, melhorias, setores, agendamentos, storage, exclusão, fix-admin
 
 ### Importar servidores (CSV)
 

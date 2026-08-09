@@ -1,28 +1,40 @@
+/**
+ * Paleta do sistema — padrão gov.br refinado.
+ * Os mesmos valores existem como tokens Tailwind em src/index.css (@theme);
+ * este objeto serve para os poucos pontos que precisam da cor em JS.
+ */
 export const C = {
-  blueDark: '#0A2F5C',
-  blue: '#1565C0',
-  blueLight: '#1E88E5',
-  blueBg: '#D6E6F7',
-  green: '#1B5E20',
-  greenBg: '#C8E6C9',
-  orange: '#E65100',
-  orangeBg: '#FFE0B2',
-  red: '#B71C1C',
-  redBg: '#FFCDD2',
-  gray1: '#E4E9F0',
-  gray2: '#D5DCE6',
-  gray3: '#B8C2D0',
-  gray5: '#8A96A8',
-  gray20: '#5C6B7E',
-  gray60: '#3D4A5C',
-  gray80: '#121A26',
-  white: '#FFFFFF',
-  sidebar: '#0B3A6E',
-  sidebarHover: '#0E4A8A',
-  sidebarActive: '#1565C0',
-  header: '#F0F4F9',
+  blue10: '#F0F5FC',
+  blue20: '#D4E5FA',
+  blue30: '#A2C5F0',
+  blue: '#1351B4',
+  blueDark: '#0C326F',
+  blueDeep: '#071D41',
+
+  yellow: '#FFCD07',
+
+  gray1: '#F8F8F8',
+  gray2: '#EDEDED',
+  gray3: '#CCCCCC',
+  gray5: '#888888',
+  gray20: '#636363',
+  gray60: '#333333',
+  gray80: '#1B1B1B',
+
+  success: '#168821',
+  successBg: '#E3F5E1',
+  successDark: '#0C6B15',
+  warning: '#D26F00',
+  warningBg: '#FDECC1',
+  warningDark: '#8A4900',
+  danger: '#D04437',
+  dangerBg: '#FBEEED',
+  dangerDark: '#9F1F14',
+
+  canvas: '#F5F7FA',
   card: '#FFFFFF',
-  inputBg: '#F7F9FC',
+  white: '#FFFFFF',
+  sidebar: '#0C326F',
 }
 
 export const PAPEIS = {
@@ -38,3 +50,5 @@ export const PAPEIS_CONVITE = [
   { value: 'recepcionista', label: 'Recepcionista — cadastro de visitantes' },
   { value: 'setor', label: 'Setor (agendamento) — agenda visitas do próprio setor' },
 ]
+
+export const WHATSAPP_DEV = 'https://wa.me/5598984016496'
