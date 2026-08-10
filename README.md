@@ -24,6 +24,16 @@ cp .env.example .env
 npm run dev
 ```
 
+## Deploy no Vercel
+
+1. No Vercel → Project → **Settings** → **Environment Variables**, cadastre:
+   - `VITE_SUPABASE_URL` = Project URL do Supabase
+   - `VITE_SUPABASE_ANON_KEY` = anon public key do Supabase
+2. Marque Production (e Preview, se quiser) e salve.
+3. Faça um **Redeploy** (Environment Variables do Vite só entram no build).
+
+Sem essas duas variáveis o site mostra a tela de configuração. O arquivo `public/config.js` é opcional no Vercel (o build cria um stub vazio para evitar 404).
+
 ## Preview no balcão **sem Node** (rede corporativa)
 
 Quando a empresa bloqueia instalação do Node:

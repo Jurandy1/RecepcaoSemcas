@@ -17,7 +17,7 @@ import {
   Users,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { Avatar, BadgeOrigem, Btn, Chip, Empty } from '../../components/ui'
+import { Avatar, BadgeOrigem, Btn, Chip, Empty, FotoAmpliavel } from '../../components/ui'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -304,14 +304,20 @@ export function PainelGestor({ onNav }) {
           ) : (
             <div className="divide-y divide-gray-2">
               {dados.ultimas.map((v) => (
-                <button
+                <div
                   key={v.id}
-                  type="button"
-                  onClick={() => onNav?.('visitantes')}
                   className="w-full text-left px-5 py-2.5 flex items-center gap-3 hover:bg-blue-10"
                 >
-                  <Avatar nome={v.nome} size={36} />
-                  <div className="min-w-0 flex-1">
+                  {v.foto_url ? (
+                    <FotoAmpliavel src={v.foto_url} alt={v.nome} size={36} />
+                  ) : (
+                    <Avatar nome={v.nome} size={36} />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onNav?.('visitantes')}
+                    className="min-w-0 flex-1 text-left"
+                  >
                     <div className="font-semibold text-blue-dark truncate text-sm">{v.nome}</div>
                     <div className="text-xs text-gray-20 mt-0.5 flex items-center gap-1.5 flex-wrap">
                       <BadgeOrigem servidor={Boolean(v.servidor_id)}>
@@ -332,9 +338,9 @@ export function PainelGestor({ onNav }) {
                         {v.setor}
                       </span>
                     </div>
-                  </div>
+                  </button>
                   <div className="text-sm font-mono text-gray-20 flex-shrink-0">{horaCurta(v.horario)}</div>
-                </button>
+                </div>
               ))}
             </div>
           )}

@@ -6,10 +6,12 @@ import {
   CheckCircle2,
   ClipboardList,
   Landmark,
+  Pencil,
   RefreshCw,
   Search,
   Trash2,
   User,
+  X,
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../lib/AuthContext'
@@ -26,6 +28,7 @@ import {
   Segmented,
 } from '../../components/ui'
 import Paginacao, { usePaginacao } from '../../components/ui/Paginacao'
+import { CampoSetorProcurado, useSetoresAtivos } from '../../components/setores'
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -33,11 +36,15 @@ function hojeISO() {
 
 export function EntradasHoje() {
   const { ehGestor } = useAuth()
+  const { setores } = useSetoresAtivos()
   const [lista, setLista] = useState([])
   const [erro, setErro] = useState('')
   const [msg, setMsg] = useState('')
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState('todos') // todos | servidores | externos | agendados
+  const [editandoId, setEditandoId] = useState(null)
+  const [setorEdit, setSetorEdit] = useState('')
+  const [salvandoSetor, setSalvandoSetor] = useState(false)
 
   const filtrada = useMemo(() => {
     let base = lista
@@ -81,9 +88,55 @@ export function EntradasHoje() {
   useEffect(() => { carregar() }, [])
 
   useEffect(() => {
-    const id = setInterval(() => { carregar() }, 30000)
+    const id = setInterval(() => {
+      // Não atualiza enquanto edita o setor — evita perder o que a pessoa digitou
+      if (editandoId) return
+      carregar()
+    }, 30000)
     return () => clearInterval(id)
-  }, [])
+  }, [editandoId])
+
+  function iniciarEdicao(v) {
+    setErro('')
+    setMsg('')
+    setEditandoId(v.id)
+    setSetorEdit(v.setor || '')
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null)
+    setSetorEdit('')
+  }
+
+  async function salvarSetor(v) {
+    const novo = setorEdit.trim()
+    if (!novo) {
+      setErro('Informe o setor de destino.')
+      return
+    }
+    if (novo === (v.setor || '').trim()) {
+      cancelarEdicao()
+      return
+    }
+
+    setSalvandoSetor(true)
+    setErro('')
+    setMsg('')
+    try {
+      const { error } = await supabase
+        .from('visitantes')
+        .update({ setor: novo })
+        .eq('id', v.id)
+      if (error) throw error
+      setMsg(`Destino de ${v.nome} atualizado para “${novo}”.`)
+      cancelarEdicao()
+      await carregar()
+    } catch (err) {
+      setErro(err.message || 'Não foi possível alterar o setor.')
+    } finally {
+      setSalvandoSetor(false)
+    }
+  }
 
   async function excluir(v) {
     if (!ehGestor) return
@@ -180,74 +233,122 @@ export function EntradasHoje() {
           <Empty icon={ClipboardList}>Nenhum registro encontrado para este filtro.</Empty>
         ) : (
           <div className="divide-y divide-gray-2">
-            {itens.map((v) => (
-              <div
-                key={v.id}
-                className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
-              >
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  {v.foto_url ? (
-                    <FotoAmpliavel src={v.foto_url} alt={v.nome} size={48} />
-                  ) : (
-                    <Avatar nome={v.nome} size={48} />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="text-base font-semibold text-blue-dark">{v.nome}</div>
-                      <BadgeOrigem servidor={Boolean(v.servidor_id)}>
-                        {v.servidor_id ? (
-                          <>
-                            <Landmark size={12} />
-                            Servidor
-                          </>
-                        ) : (
-                          <>
-                            <User size={12} />
-                            Visitante
-                          </>
+            {itens.map((v) => {
+              const editando = editandoId === v.id
+              return (
+                <div
+                  key={v.id}
+                  className="px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between"
+                >
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    {v.foto_url ? (
+                      <FotoAmpliavel src={v.foto_url} alt={v.nome} size={48} />
+                    ) : (
+                      <Avatar nome={v.nome} size={48} />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="text-base font-semibold text-blue-dark">{v.nome}</div>
+                        <BadgeOrigem servidor={Boolean(v.servidor_id)}>
+                          {v.servidor_id ? (
+                            <>
+                              <Landmark size={12} />
+                              Servidor
+                            </>
+                          ) : (
+                            <>
+                              <User size={12} />
+                              Visitante
+                            </>
+                          )}
+                        </BadgeOrigem>
+                        {v.tipo === 'agendada' && (
+                          <Chip tone="warn" icon={CalendarCheck} xs>
+                            Agendado
+                          </Chip>
                         )}
-                      </BadgeOrigem>
-                      {v.tipo === 'agendada' && (
-                        <Chip tone="warn" icon={CalendarCheck} xs>
-                          Agendado
-                        </Chip>
+                      </div>
+
+                      {editando ? (
+                        <div className="mt-2 space-y-2 max-w-md">
+                          <div className="text-xs font-semibold text-gray-20 uppercase tracking-wider">
+                            Corrigir setor de destino
+                          </div>
+                          <CampoSetorProcurado
+                            value={setorEdit}
+                            onChange={setSetorEdit}
+                            setores={setores}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Btn
+                              size="sm"
+                              onClick={() => salvarSetor(v)}
+                              disabled={salvandoSetor}
+                            >
+                              {salvandoSetor ? 'Salvando...' : 'Salvar destino'}
+                            </Btn>
+                            <Btn
+                              variant="ghost"
+                              size="sm"
+                              icon={X}
+                              onClick={cancelarEdicao}
+                              disabled={salvandoSetor}
+                            >
+                              Cancelar
+                            </Btn>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-sm text-gray-20 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                            {v.servidor_id && v.servidores?.lotacao && <span>{v.servidores.lotacao}</span>}
+                            <span className="inline-flex items-center gap-1">
+                              <ArrowRight size={14} />
+                              {v.setor}
+                            </span>
+                            <span className="font-mono text-xs">CPF {maskCpfExibicao(v.cpf)}</span>
+                            {v.telefone && <span className="font-mono text-xs">{v.telefone}</span>}
+                          </div>
+                          {v.observacao && (
+                            <div className="text-sm text-blue-dark mt-1.5 italic">“{v.observacao}”</div>
+                          )}
+                        </>
                       )}
                     </div>
-                    <div className="text-sm text-gray-20 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                      {v.servidor_id && v.servidores?.lotacao && <span>{v.servidores.lotacao}</span>}
-                      <span className="inline-flex items-center gap-1">
-                        <ArrowRight size={14} />
-                        {v.setor}
-                      </span>
-                      <span className="font-mono text-xs">CPF {maskCpfExibicao(v.cpf)}</span>
-                      {v.telefone && <span className="font-mono text-xs">{v.telefone}</span>}
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 justify-between sm:justify-end">
+                    <div className="text-lg font-mono font-semibold text-blue-dark">
+                      {new Date(v.horario).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </div>
-                    {v.observacao && (
-                      <div className="text-sm text-blue-dark mt-1.5 italic">“{v.observacao}”</div>
+                    {!editando && (
+                      <Btn
+                        variant="outline"
+                        size="sm"
+                        icon={Pencil}
+                        onClick={() => iniciarEdicao(v)}
+                        title="Corrigir setor de destino"
+                      >
+                        Corrigir setor
+                      </Btn>
+                    )}
+                    {ehGestor && !editando && (
+                      <Btn
+                        variant="dangerGhost"
+                        size="sm"
+                        icon={Trash2}
+                        onClick={() => excluir(v)}
+                        title="Excluir registro de entrada"
+                      >
+                        Excluir
+                      </Btn>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 justify-between sm:justify-end">
-                  <div className="text-lg font-mono font-semibold text-blue-dark">
-                    {new Date(v.horario).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </div>
-                  {ehGestor && (
-                    <Btn
-                      variant="dangerGhost"
-                      size="sm"
-                      icon={Trash2}
-                      onClick={() => excluir(v)}
-                      title="Excluir registro de entrada"
-                    >
-                      Excluir
-                    </Btn>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
         <Paginacao

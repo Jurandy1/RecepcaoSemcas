@@ -2,10 +2,9 @@ import { createClient } from '@supabase/supabase-js'
 
 function lerConfig() {
   const runtime = (typeof window !== 'undefined' && window.__SEMCAS_CONFIG__) || {}
-  return {
-    url: runtime.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || '',
-    anonKey: runtime.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-  }
+  const url = String(runtime.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || '').trim()
+  const anonKey = String(runtime.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim()
+  return { url, anonKey }
 }
 
 const { url: supabaseUrl, anonKey: supabaseAnonKey } = lerConfig()

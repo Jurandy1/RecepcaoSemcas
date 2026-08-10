@@ -44,17 +44,18 @@ function TelaAviso({ titulo, children, acoes }) {
 function ConfiguracaoPendente() {
   return (
     <TelaAviso titulo="Configuração do Supabase necessária">
-      <p>O sistema está sem a URL e a chave do banco. Por isso a tela ficava branca.</p>
+      <p>O sistema está sem a URL e a chave do banco.</p>
       <ol className="space-y-2 list-decimal pl-5 text-gray-80">
         <li>
-          Abra o arquivo <strong>public/config.js</strong> (ou <strong>dist/config.js</strong> no preview).
+          <strong>No Vercel:</strong> Project Settings → Environment Variables → adicione{' '}
+          <code>VITE_SUPABASE_URL</code> e <code>VITE_SUPABASE_ANON_KEY</code> (mesmo valor do
+          Supabase → Project Settings → API) e faça um novo deploy.
         </li>
         <li>
-          Cole a <strong>Project URL</strong> e a <strong>anon public</strong> key do Supabase.
+          <strong>Local / balcão:</strong> copie <code>public/config.example.js</code> para{' '}
+          <code>public/config.js</code> e preencha URL e chave anon.
         </li>
-        <li>Salve e atualize a página (F5).</li>
       </ol>
-      <p className="text-xs text-gray-20">No painel: Supabase → Project Settings → API</p>
     </TelaAviso>
   )
 }

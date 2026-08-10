@@ -2,8 +2,18 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase, supabaseConfigured } from './supabase'
 
 const ADMIN_UID = '4a511454-6452-41da-9f37-270cdc5a6f99'
+const AUTH_TIMEOUT_MS = 12000
 
 const AuthContext = createContext(null)
+
+function comTimeout(promise, ms, mensagem) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(mensagem)), ms)
+    }),
+  ])
+}
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
@@ -14,39 +24,45 @@ export function AuthProvider({ children }) {
   async function carregarPerfil(userId) {
     if (!supabase) return null
 
-    const { data, error } = await supabase
-      .from('perfis')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
+    try {
+      const { data, error } = await comTimeout(
+        supabase.from('perfis').select('*').eq('id', userId).maybeSingle(),
+        AUTH_TIMEOUT_MS,
+        'Tempo esgotado ao carregar o perfil.'
+      )
 
-    if (error) {
-      console.error('Erro ao carregar perfil:', error.message)
-      const m = (error.message || '').toLowerCase()
-      if (m.includes('jwt') || m.includes('session') || error.code === 'PGRST301') {
-        setSessaoExpirada(true)
+      if (error) {
+        console.error('Erro ao carregar perfil:', error.message)
+        const m = (error.message || '').toLowerCase()
+        if (m.includes('jwt') || m.includes('session') || error.code === 'PGRST301') {
+          setSessaoExpirada(true)
+        }
       }
-    }
 
-    if (data) {
-      setPerfil(data)
-      return data
-    }
-
-    // Admin geral: cria perfil automaticamente se faltar
-    if (userId === ADMIN_UID) {
-      const { data: criado, error: rpcError } = await supabase.rpc('garantir_perfil_admin')
-      if (!rpcError && criado) {
-        setPerfil(criado)
-        return criado
+      if (data) {
+        setPerfil(data)
+        return data
       }
-      if (rpcError) {
-        console.error('garantir_perfil_admin:', rpcError.message)
-      }
-    }
 
-    setPerfil(null)
-    return null
+      // Admin geral: cria perfil automaticamente se faltar
+      if (userId === ADMIN_UID) {
+        const { data: criado, error: rpcError } = await supabase.rpc('garantir_perfil_admin')
+        if (!rpcError && criado) {
+          setPerfil(criado)
+          return criado
+        }
+        if (rpcError) {
+          console.error('garantir_perfil_admin:', rpcError.message)
+        }
+      }
+
+      setPerfil(null)
+      return null
+    } catch (err) {
+      console.error('carregarPerfil:', err.message || err)
+      setPerfil(null)
+      return null
+    }
   }
 
   useEffect(() => {
@@ -57,15 +73,29 @@ export function AuthProvider({ children }) {
 
     let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      if (!mounted) return
-      setSession(s)
-      if (s?.user) {
-        carregarPerfil(s.user.id).finally(() => mounted && setLoading(false))
-      } else {
-        setLoading(false)
-      }
-    })
+    comTimeout(
+      supabase.auth.getSession(),
+      AUTH_TIMEOUT_MS,
+      'Tempo esgotado ao conectar. Verifique a internet e as chaves do Supabase.'
+    )
+      .then(({ data: { session: s } }) => {
+        if (!mounted) return
+        setSession(s)
+        if (s?.user) {
+          return carregarPerfil(s.user.id)
+        }
+        return null
+      })
+      .catch((err) => {
+        console.error('getSession:', err.message || err)
+        if (mounted) {
+          setSession(null)
+          setPerfil(null)
+        }
+      })
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s)
