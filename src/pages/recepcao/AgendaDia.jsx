@@ -46,7 +46,7 @@ export function AgendaDia() {
     setChegandoId(ag.id)
     try {
       await supabase.from('agendamentos').update({ status: 'chegou' }).eq('id', ag.id)
-      const cpf = ag.cpf && cpfValido(ag.cpf) ? formatCpf(ag.cpf) : (ag.cpf || '000.000.000-00')
+      const cpf = ag.cpf && cpfValido(ag.cpf) ? formatCpf(ag.cpf) : (ag.cpf || null)
 
       let fotoAnterior = null
       if (ag.cpf && cpfValido(ag.cpf)) {

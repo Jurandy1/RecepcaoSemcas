@@ -306,7 +306,9 @@ export function EntradasHoje() {
                               <ArrowRight size={14} />
                               {v.setor}
                             </span>
-                            <span className="font-mono text-xs">CPF {maskCpfExibicao(v.cpf)}</span>
+                            <span className="font-mono text-xs">
+                              {v.cpf ? `CPF ${maskCpfExibicao(v.cpf)}` : 'Sem CPF'}
+                            </span>
                             {v.telefone && <span className="font-mono text-xs">{v.telefone}</span>}
                           </div>
                           {v.observacao && (

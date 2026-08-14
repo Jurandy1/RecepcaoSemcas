@@ -48,11 +48,20 @@ function HistoricoVisitante({ pessoa, onVoltar }) {
     async function carregar() {
       setCarregando(true)
       setErro('')
-      const { data, error } = await supabase
+      let query = supabase
         .from('visitantes')
         .select('id, nome, cpf, setor, observacao, horario, tipo, telefone, foto_url')
-        .eq('cpf', pessoa.cpf)
         .order('horario', { ascending: false })
+
+      if (pessoa.cpf) {
+        query = query.eq('cpf', pessoa.cpf)
+      } else if (pessoa.id) {
+        query = query.eq('id', pessoa.id)
+      } else {
+        query = query.ilike('nome', pessoa.nome || '')
+      }
+
+      const { data, error } = await query
       if (!ativo) return
       if (error) setErro(error.message)
       setVisitas(data || [])
@@ -62,7 +71,7 @@ function HistoricoVisitante({ pessoa, onVoltar }) {
     return () => {
       ativo = false
     }
-  }, [pessoa.cpf])
+  }, [pessoa.cpf, pessoa.id, pessoa.nome])
 
   const porDia = useMemo(() => {
     const grupos = []
@@ -94,7 +103,11 @@ function HistoricoVisitante({ pessoa, onVoltar }) {
                 {pessoa.nome}
               </h1>
               <div className="text-sm text-gray-20 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="font-mono">CPF {maskCpfExibicao(pessoa.cpf)}</span>
+                {pessoa.cpf ? (
+                  <span className="font-mono">CPF {maskCpfExibicao(pessoa.cpf)}</span>
+                ) : (
+                  <span>Sem CPF</span>
+                )}
                 {pessoa.telefone && (
                   <>
                     <span aria-hidden="true">·</span>
@@ -227,11 +240,12 @@ export default function VisitantesCadastrados() {
 
       const map = new Map()
       for (const v of todas) {
-        if (!v.cpf) continue
-        const atual = map.get(v.cpf)
+        const chave = v.cpf || `id:${v.id}`
+        const atual = map.get(chave)
         if (!atual) {
-          map.set(v.cpf, {
-            cpf: v.cpf,
+          map.set(chave, {
+            id: v.id,
+            cpf: v.cpf || null,
             nome: v.nome,
             telefone: v.telefone,
             foto_url: v.foto_url,
@@ -272,7 +286,7 @@ export default function VisitantesCadastrados() {
         <div>
           <h1 className="page-title text-2xl sm:text-3xl">Visitantes cadastrados</h1>
           <p className="page-sub text-sm text-gray-20 mt-1.5">
-            Pessoas únicas por CPF
+            Pessoas únicas por CPF (sem CPF entram como registro individual)
             {!carregando && (
               <>
                 {' · '}
@@ -323,7 +337,7 @@ export default function VisitantesCadastrados() {
                 const { data, hora } = partesDataHora(p.ultimaVisita)
                 return (
                   <button
-                    key={p.cpf}
+                    key={p.cpf || p.id}
                     type="button"
                     onClick={() => setSelecionado(p)}
                     title="Ver histórico de visitas"
@@ -333,7 +347,7 @@ export default function VisitantesCadastrados() {
                     <div className="min-w-0 flex-1">
                       <div className="text-base font-semibold text-blue-dark truncate">{p.nome}</div>
                       <div className="text-sm text-gray-20 mt-0.5 font-mono">
-                        CPF {maskCpfExibicao(p.cpf)}
+                        {p.cpf ? `CPF ${maskCpfExibicao(p.cpf)}` : 'Sem CPF'}
                       </div>
                       <div className="text-xs text-gray-20 mt-1 flex flex-wrap items-center gap-x-2">
                         <span>

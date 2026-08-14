@@ -45,7 +45,7 @@ create index if not exists idx_convites_email on public.convites (email);
 create table if not exists public.visitantes (
   id uuid primary key default gen_random_uuid(),
   nome text not null,
-  cpf text not null,
+  cpf text,
   telefone text,
   setor text not null,
   motivo text,
