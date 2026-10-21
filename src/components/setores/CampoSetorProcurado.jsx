@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Input, Select } from '../ui'
-const OUTRO = '__outro__'
+import { useId } from 'react'
+import { Input } from '../ui'
 
-/** Select da lista + opção Outro para digitar livremente. */
+/** Campo pesquisável que também permite informar um setor fora da lista. */
 export function CampoSetorProcurado({
   value,
   onChange,
@@ -11,61 +10,29 @@ export function CampoSetorProcurado({
   inputRef,
   placeholder = 'Ex.: Gabinete, Recursos Humanos...',
 }) {
-  const naLista = setores.some((s) => s.nome === value)
-  const [modoOutro, setModoOutro] = useState(() => Boolean(value && !naLista))
-
-  useEffect(() => {
-    if (value && !setores.some((s) => s.nome === value)) {
-      setModoOutro(true)
-    }
-  }, [value, setores])
-
-  if (!setores.length) {
-    return (
-      <Input
-        ref={inputRef}
-        large={large}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
-    )
-  }
-
-  const selectValue = modoOutro ? OUTRO : (value || '')
+  const listId = useId()
 
   return (
     <div className="space-y-2">
-      <Select
+      <Input
+        ref={inputRef}
         large={large}
-        value={selectValue}
-        onChange={(e) => {
-          const v = e.target.value
-          if (v === OUTRO) {
-            setModoOutro(true)
-            if (naLista) onChange('')
-          } else {
-            setModoOutro(false)
-            onChange(v)
-          }
-        }}
-      >
-        <option value="">Selecione o setor...</option>
+        list={setores.length ? listId : undefined}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete="off"
+      />
+      {setores.length > 0 && (
+        <datalist id={listId}>
         {setores.map((s) => (
           <option key={s.id} value={s.nome}>{s.nome}</option>
         ))}
-        <option value={OUTRO}>Outro (digitar)</option>
-      </Select>
-      {modoOutro && (
-        <Input
-          ref={inputRef}
-          large={large}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          autoFocus
-        />
+        </datalist>
       )}
+      <p className="text-xs text-gray-20">
+        Digite para pesquisar. Se não encontrar, informe o nome do setor manualmente.
+      </p>
     </div>
   )
 }

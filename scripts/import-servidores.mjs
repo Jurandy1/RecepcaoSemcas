@@ -36,25 +36,76 @@ function parseDataBr(str = '') {
   return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
 }
 
+function normalizarCabecalho(valor = '') {
+  return String(valor)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+}
+
+function dividirLinhaCsv(linha) {
+  const campos = []
+  let atual = ''
+  let entreAspas = false
+
+  for (let i = 0; i < linha.length; i++) {
+    const caractere = linha[i]
+    if (caractere === '"') {
+      if (entreAspas && linha[i + 1] === '"') {
+        atual += '"'
+        i++
+      } else {
+        entreAspas = !entreAspas
+      }
+    } else if (caractere === ';' && !entreAspas) {
+      campos.push(atual)
+      atual = ''
+    } else {
+      atual += caractere
+    }
+  }
+
+  campos.push(atual)
+  return campos
+}
+
 function parseCsv(text) {
   const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim())
   if (lines.length < 2) return []
+  const headers = dividirLinhaCsv(lines[0]).map(normalizarCabecalho)
+  const indice = (...nomes) => headers.findIndex((header) => nomes.includes(header))
+  const indices = {
+    lotacao: indice('lotacao'),
+    matricula: indice('matricula'),
+    nome: indice('funcionario', 'nome'),
+    cargo: indice('cargo origem', 'cargo'),
+    cargoComissionado: indice('cargo comissionado'),
+    admissao: indice('admissao'),
+    demissao: indice('demissao'),
+  }
+
+  if (indices.lotacao < 0 || indices.matricula < 0 || indices.nome < 0) {
+    throw new Error('O CSV precisa conter as colunas Lotação, Matricula e Funcionário/Nome.')
+  }
+
+  const valor = (parts, index) => index >= 0 ? (parts[index] || '').trim() : ''
   const rows = []
   for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split(';')
+    const parts = dividirLinhaCsv(lines[i])
     if (parts.length < 3) continue
-    const lotacao = (parts[0] || '').trim()
-    const matricula = (parts[1] || '').trim()
-    const nome = (parts[2] || '').trim()
+    const lotacao = valor(parts, indices.lotacao)
+    const matricula = valor(parts, indices.matricula)
+    const nome = valor(parts, indices.nome)
     if (!lotacao || !matricula || !nome) continue
     rows.push({
       lotacao,
       matricula,
       nome,
-      cargo: (parts[3] || '').trim() || null,
-      cargo_comissionado: (parts[4] || '').trim() || null,
-      admissao: parseDataBr(parts[5] || '') || null,
-      ativo: true,
+      cargo: valor(parts, indices.cargo) || null,
+      cargo_comissionado: valor(parts, indices.cargoComissionado) || null,
+      admissao: parseDataBr(valor(parts, indices.admissao)) || null,
+      ativo: !valor(parts, indices.demissao),
     })
   }
   return rows

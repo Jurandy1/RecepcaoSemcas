@@ -559,7 +559,7 @@ export function FormRegistrar({ onRegistrado }) {
             </Field>
           )}
 
-          <Field label="Setor procurado" required hint="Escolha da lista ou use Outro para digitar.">
+          <Field label="Setor procurado" required hint="Pesquise pelo nome ou digite um setor manualmente.">
             <CampoSetorProcurado
               large
               value={form.setor}

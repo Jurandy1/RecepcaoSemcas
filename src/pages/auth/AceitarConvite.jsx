@@ -243,7 +243,7 @@ export default function AceitarConvite({ onVoltar, tokenInicial = '' }) {
                   <Field
                     label="Seu setor"
                     required
-                    hint="Escolha um setor da lista ou use Outro para digitar o nome do seu setor."
+                    hint="Pesquise na lista ou digite manualmente o nome do seu setor."
                   >
                     <CampoSetorProcurado
                       value={form.setor}

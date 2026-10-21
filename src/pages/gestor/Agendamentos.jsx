@@ -686,7 +686,7 @@ function FormAgendarGestor({ perfil, onVoltar, onSalvo }) {
           <Field
             label="Setor de destino"
             required
-            hint="É para onde a pessoa vai. Escolha da lista ou use Outro para digitar."
+            hint="É para onde a pessoa vai. Pesquise pelo nome ou digite um setor manualmente."
           >
             <CampoSetorProcurado
               large
